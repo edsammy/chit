@@ -91,8 +91,7 @@ func renderMarkdown(s string) string {
 }
 
 var (
-	tableHeaderStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15")).Background(lipgloss.Color("8"))
-	tableCellStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+	tableHeaderStyle = lipgloss.NewStyle().Bold(true)
 	tableBorderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 )
 
@@ -155,6 +154,9 @@ func renderTable(lines []string) []string {
 	out = append(out, topBorder)
 
 	for i, row := range dataRows {
+		if i > 0 {
+			out = append(out, midBorder)
+		}
 		var parts []string
 		for j := 0; j < numCols; j++ {
 			cell := ""
@@ -172,10 +174,6 @@ func renderTable(lines []string) []string {
 			}
 		}
 		out = append(out, sep+strings.Join(parts, sep)+sep)
-
-		if i == 0 {
-			out = append(out, midBorder)
-		}
 	}
 
 	out = append(out, botBorder)

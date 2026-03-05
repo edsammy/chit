@@ -26,10 +26,14 @@ run-client:
 	bin/chit
 
 run-bridge:
-	bin/chit-bridge
+	@test -f .bridge.env || (echo "create .bridge.env first (see .bridge.env.example)" && exit 1)
+	set -a && . ./.bridge.env && set +a && bin/chit-bridge
 
 seed-defaults:
 	bin/seed defaults
+
+invite:
+	bin/seed invite
 
 clean:
 	rm -rf bin/

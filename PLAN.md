@@ -385,21 +385,10 @@ Backups: `pb_data/data.db` is the entire platform. Push to GitHub + periodic cop
 ### Phase 2 — TUI client ✓
 - Connect to server, pick a room, see messages, send messages
 - Rooms panel with unread indicators
-- Markdown rendering
-- Threads, reactions, edit, delete
-- Slash commands:
-  - `/help` — show available commands
-  - `/reply` — reply to a message (start a thread)
-  - `/rooms` — switch to rooms panel
-  - `/topic` — set room topic
-  - `/doc <name>` — show a company doc
-  - `/ethos` — show company ethos
-  - `/status` — who's been active recently
-  - `/version` — show build version + check for updates
-  - `/plan <topic>` — start a planning thread with Claude *(Phase 3)*
-  - `/decide` — Claude summarizes discussion into a decision doc *(Phase 3)*
-  - `/update-doc <name>` — tell Claude to update a doc *(Phase 3)*
-  - `/catchup` — Claude summarizes what you missed *(Phase 3)*
+- Markdown rendering (tables, headings, bold, code, HR)
+- Threads (view and reply)
+- Shift+Tab quick channel switching
+- #errors hidden from sidebar, ⚠ indicator when unread
 
 ### Phase 3 — Bridge + Claude ✓
 - Bridge daemon: SSE listener → context assembly → claude -p → post response
@@ -411,18 +400,22 @@ Backups: `pb_data/data.db` is the entire platform. Push to GitHub + periodic cop
 - Client-side dot animation for pending responses
 - Model tag display ([opus 4-6]) in message headers
 - CHIT_PROJECT_DIR for pointing Claude at target codebase
+- #errors channel for bridge error visibility
 
-### Phase 4 — Auth + Deploy (next)
+### Phase 4 — Auth ✓
 - Invite code claim flow (admin generates codes, users claim with handle + name)
 - Per-member API tokens (Bearer auth on all requests)
 - Token saved to ~/.config/chit/token
 - First-run TUI prompts for invite code
 - Auth middleware on server (401 for missing/invalid tokens)
 - Bot tokens generated at seed time
+- .bridge.env for bridge config
+
+### Phase 5 — Deploy (next)
 - Deploy: Caddy (TLS) + systemd on VPS, or Tailscale on Mac
 - Cross-compile + deploy script
 
-### Phase 5 — Self-update + client distribution
+### Phase 6 — Self-update + client distribution
 - Deploy script (build + restart services)
 - Claude can edit code, commit, push, rebuild, redeploy
 - Guardrails: no touching pb_data, no destructive git ops
@@ -432,11 +425,11 @@ Backups: `pb_data/data.db` is the entire platform. Push to GitHub + periodic cop
 - Version check on client startup, `*` indicator when outdated
 - `chit update` to self-replace with latest binary
 
-### Phase 6 — GitHub integration
+### Phase 7 — GitHub integration
 - Webhook receiver for push, PR, CI
 - GitHub bot user posts events to rooms
 
-### Phase 7 — Polish
+### Phase 8 — Polish
 - Avatars (ASCII identicons)
 - Search
 - /summarize (room-level summaries)

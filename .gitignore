@@ -5,6 +5,9 @@ dist/
 # PocketBase data
 pb_data/
 
+# Secrets
+.bridge.env
+
 # Editor
 .DS_Store
 *.swp

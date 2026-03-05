@@ -14,7 +14,8 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
+	args := os.Args[1:]
+	if len(args) == 0 {
 		fmt.Println("usage: seed <command> [args]")
 		fmt.Println()
 		fmt.Println("commands:")
@@ -22,49 +23,55 @@ func main() {
 		fmt.Println("  bot <handle> <name>          — create a bot user")
 		fmt.Println("  room <name> [topic]          — create a room")
 		fmt.Println("  invite [count]               — generate invite codes")
+		fmt.Println("  token <handle>               — print member's token")
 		fmt.Println("  defaults                     — create default rooms and users")
 		os.Exit(1)
 	}
 
-	app := pocketbase.New()
+	app := pocketbase.NewWithConfig(pocketbase.Config{DefaultDataDir: "pb_data"})
 	if err := app.Bootstrap(); err != nil {
 		log.Fatalf("bootstrap: %v", err)
 	}
 
-	switch os.Args[1] {
+	switch args[0] {
 	case "user":
-		if len(os.Args) < 4 {
+		if len(args) < 3 {
 			log.Fatal("usage: seed user <handle> <name>")
 		}
-		createUser(app, os.Args[2], os.Args[3], false)
+		createUser(app, args[1], args[2], false)
 	case "bot":
-		if len(os.Args) < 4 {
+		if len(args) < 3 {
 			log.Fatal("usage: seed bot <handle> <name>")
 		}
-		createUser(app, os.Args[2], os.Args[3], true)
+		createUser(app, args[1], args[2], true)
 	case "room":
-		if len(os.Args) < 3 {
+		if len(args) < 2 {
 			log.Fatal("usage: seed room <name> [topic]")
 		}
 		topic := ""
-		if len(os.Args) >= 4 {
-			topic = os.Args[3]
+		if len(args) >= 3 {
+			topic = args[2]
 		}
-		createRoom(app, os.Args[2], topic)
+		createRoom(app, args[1], topic)
 	case "invite":
 		count := 1
-		if len(os.Args) >= 3 {
-			n, err := strconv.Atoi(os.Args[2])
+		if len(args) >= 2 {
+			n, err := strconv.Atoi(args[1])
 			if err != nil || n < 1 {
 				log.Fatal("usage: seed invite [count]")
 			}
 			count = n
 		}
 		createInvites(app, count)
+	case "token":
+		if len(args) < 2 {
+			log.Fatal("usage: seed token <handle>")
+		}
+		printToken(app, args[1])
 	case "defaults":
 		seedDefaults(app)
 	default:
-		log.Fatalf("unknown command: %s", os.Args[1])
+		log.Fatalf("unknown command: %s", args[0])
 	}
 }
 
@@ -176,6 +183,18 @@ func generateToken() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
+}
+
+func printToken(app *pocketbase.PocketBase, handle string) {
+	col, err := app.FindCollectionByNameOrId("members")
+	if err != nil {
+		log.Fatalf("members collection not found: %v", err)
+	}
+	rec, err := app.FindFirstRecordByFilter(col, "handle = {:h}", map[string]any{"h": handle})
+	if err != nil {
+		log.Fatalf("member @%s not found", handle)
+	}
+	fmt.Print(rec.GetString("token"))
 }
 
 func seedDefaults(app *pocketbase.PocketBase) {
