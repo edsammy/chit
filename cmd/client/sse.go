@@ -13,11 +13,11 @@ import (
 
 type sseEvent struct{}
 
-func subscribeSSE(base string, p *tea.Program) {
+func subscribeSSE(base, token string, p *tea.Program) {
 	go func() {
 		backoff := time.Second
 		for {
-			err := listenSSE(base, p)
+			err := listenSSE(base, token, p)
 			_ = err
 			time.Sleep(backoff)
 			if backoff < 30*time.Second {
@@ -28,8 +28,15 @@ func subscribeSSE(base string, p *tea.Program) {
 	}()
 }
 
-func listenSSE(base string, p *tea.Program) error {
-	resp, err := http.Get(base + "/api/realtime")
+func listenSSE(base, token string, p *tea.Program) error {
+	req, err := http.NewRequest("GET", base+"/api/realtime", nil)
+	if err != nil {
+		return err
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -52,7 +59,7 @@ func listenSSE(base string, p *tea.Program) error {
 			}
 			if json.Unmarshal([]byte(data), &connect) == nil && connect.ClientID != "" {
 				clientID = connect.ClientID
-				go subscribe(base, clientID)
+				go subscribe(base, token, clientID)
 				continue
 			}
 		}
@@ -64,7 +71,15 @@ func listenSSE(base string, p *tea.Program) error {
 	return scanner.Err()
 }
 
-func subscribe(base, clientID string) {
+func subscribe(base, token, clientID string) {
 	body := fmt.Sprintf(`{"clientId":"%s","subscriptions":["messages"]}`, clientID)
-	http.Post(base+"/api/realtime", "application/json", strings.NewReader(body))
+	req, err := http.NewRequest("POST", base+"/api/realtime", strings.NewReader(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	http.DefaultClient.Do(req)
 }

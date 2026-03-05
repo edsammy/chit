@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log"
 
@@ -16,7 +18,7 @@ func main() {
 			log.Fatalf("failed to ensure collections: %v", err)
 		}
 
-		registerHooks(se)
+		registerHooks(se, app)
 
 		return se.Next()
 	})
@@ -39,6 +41,14 @@ func ensureCollections(app *pocketbase.PocketBase) error {
 				{"name": "handle", "type": "text", "required": true},
 				{"name": "name", "type": "text", "required": true},
 				{"name": "is_bot", "type": "bool"},
+				{"name": "token", "type": "text"},
+			},
+		},
+		{
+			name: "invite_codes",
+			fields: []map[string]any{
+				{"name": "code", "type": "text", "required": true},
+				{"name": "used", "type": "bool"},
 			},
 		},
 		{
@@ -95,8 +105,11 @@ func ensureCollections(app *pocketbase.PocketBase) error {
 		switch d.name {
 		case "members":
 			col.AddIndex("idx_members_handle", true, "handle", "")
+			col.AddIndex("idx_members_token", true, "token", "token != ''")
 		case "rooms":
 			col.AddIndex("idx_rooms_name", true, "name", "")
+		case "invite_codes":
+			col.AddIndex("idx_invite_codes_code", true, "code", "")
 		}
 
 		col.ListRule = strPtr("")
@@ -126,6 +139,7 @@ func ensureCollections(app *pocketbase.PocketBase) error {
 		{"reactions", "user", "members", true},
 		{"read_markers", "member", "members", true},
 		{"read_markers", "room", "rooms", true},
+		{"invite_codes", "claimed_by", "members", false},
 		{"claude_threads", "started_by", "members", true},
 		{"claude_threads", "shared_to", "rooms", false},
 	}
@@ -158,7 +172,54 @@ func ensureCollections(app *pocketbase.PocketBase) error {
 		log.Printf("added relation: %s.%s -> %s", r.collection, r.field, r.target)
 	}
 
+	if err := migrateTokenField(app); err != nil {
+		return fmt.Errorf("migrate token field: %w", err)
+	}
+
 	return nil
+}
+
+func migrateTokenField(app *pocketbase.PocketBase) error {
+	col, err := app.FindCollectionByNameOrId("members")
+	if err != nil {
+		return nil
+	}
+
+	if col.Fields.GetByName("token") == nil {
+		col.Fields.Add(&core.TextField{Name: "token"})
+		col.AddIndex("idx_members_token", true, "token", "token != ''")
+		if err := app.Save(col); err != nil {
+			return fmt.Errorf("add token field: %w", err)
+		}
+		log.Printf("migrated: added token field to members")
+	}
+
+	records, err := app.FindAllRecords(col)
+	if err != nil {
+		return nil
+	}
+	for _, rec := range records {
+		if rec.GetString("token") == "" {
+			token, err := generateToken()
+			if err != nil {
+				return fmt.Errorf("generate token: %w", err)
+			}
+			rec.Set("token", token)
+			if err := app.Save(rec); err != nil {
+				return fmt.Errorf("backfill token for %s: %w", rec.GetString("handle"), err)
+			}
+			log.Printf("backfilled token for @%s", rec.GetString("handle"))
+		}
+	}
+	return nil
+}
+
+func generateToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 
 func simpleField(m map[string]any) core.Field {
@@ -181,7 +242,9 @@ func simpleField(m map[string]any) core.Field {
 
 func strPtr(s string) *string { return &s }
 
-func registerHooks(se *core.ServeEvent) {
+func registerHooks(se *core.ServeEvent, app *pocketbase.PocketBase) {
+	registerAuth(se, app)
+
 	se.Router.POST("/api/hooks/claude", func(e *core.RequestEvent) error {
 		return e.JSON(200, map[string]string{"status": "ok", "message": "claude hook placeholder"})
 	})

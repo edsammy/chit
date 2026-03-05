@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -12,27 +15,81 @@ import (
 
 func main() {
 	server := envOr("CHIT_SERVER", "http://127.0.0.1:8090")
-	user := envOr("CHIT_USER", "")
+	token := envOr("CHIT_TOKEN", "")
 
-	if user == "" {
-		fmt.Fprintln(os.Stderr, "set CHIT_USER to your handle")
-		os.Exit(1)
+	if token == "" {
+		token = loadToken()
 	}
 
-	api := NewAPI(server)
-	me, err := api.FindMemberByHandle(user)
+	if token == "" {
+		var err error
+		token, err = claimFlow(server)
+		if err != nil {
+			log.Fatalf("claim failed: %v", err)
+		}
+		saveToken(token)
+	}
+
+	api := NewAPI(server, token)
+	me, err := api.GetMe()
 	if err != nil {
-		log.Fatalf("could not find user %q: %v", user, err)
+		log.Fatalf("auth failed (bad token?): %v", err)
 	}
 
 	m := initialModel(api, me)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
-	subscribeSSE(server, p)
+	subscribeSSE(server, token, p)
 
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func claimFlow(server string) (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Welcome to chit! Enter your invite code to get started.")
+	fmt.Println()
+
+	fmt.Print("Invite code: ")
+	code, _ := reader.ReadString('\n')
+	code = strings.TrimSpace(code)
+
+	fmt.Print("Handle: ")
+	handle, _ := reader.ReadString('\n')
+	handle = strings.TrimSpace(handle)
+
+	fmt.Print("Display name: ")
+	name, _ := reader.ReadString('\n')
+	name = strings.TrimSpace(name)
+
+	api := NewAPI(server, "")
+	token, member, err := api.ClaimInvite(code, handle, name)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("\nWelcome, %s! You're in.\n", member.Handle)
+	return token, nil
+}
+
+func tokenPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".config", "chit", "token")
+}
+
+func loadToken() string {
+	data, err := os.ReadFile(tokenPath())
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func saveToken(token string) {
+	path := tokenPath()
+	os.MkdirAll(filepath.Dir(path), 0700)
+	os.WriteFile(path, []byte(token+"\n"), 0600)
 }
 
 func envOr(key, def string) string {

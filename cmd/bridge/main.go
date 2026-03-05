@@ -12,16 +12,19 @@ func main() {
 	os.Unsetenv("CLAUDECODE")
 
 	server := envOr("CHIT_SERVER", "http://127.0.0.1:8090")
-	handle := envOr("CHIT_BRIDGE_USER", "claude")
+	token := os.Getenv("CHIT_TOKEN")
+	if token == "" {
+		log.Fatal("CHIT_TOKEN is required")
+	}
 	promptFile := envOr("CHIT_SYSTEM_PROMPT", "pb_hooks/claude_system_prompt.md")
 	projectDir := envOr("CHIT_PROJECT_DIR", ".")
 	maxTurns := envOrInt("CHIT_MAX_TURNS", 25)
 
-	api := NewAPI(server)
+	api := NewAPI(server, token)
 
-	bot, err := api.FindMemberByHandle(handle)
+	bot, err := api.GetMe()
 	if err != nil {
-		log.Fatalf("finding bot user %q: %v", handle, err)
+		log.Fatalf("auth failed: %v", err)
 	}
 	log.Printf("bridge started as @%s (%s)", bot.Handle, bot.ID)
 
@@ -49,7 +52,7 @@ func main() {
 	log.Printf("claude working directory: %s", projectDir)
 
 	log.Printf("connecting to SSE at %s", server)
-	watchMessages(server, bot.ID, claudeRoom.ID, handler)
+	watchMessages(server, token, bot.ID, claudeRoom.ID, handler)
 }
 
 func envOr(key, def string) string {

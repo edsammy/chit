@@ -11,11 +11,12 @@ import (
 
 type API struct {
 	base   string
+	token  string
 	client *http.Client
 }
 
-func NewAPI(base string) *API {
-	return &API{base: base, client: &http.Client{}}
+func NewAPI(base, token string) *API {
+	return &API{base: base, token: token, client: &http.Client{}}
 }
 
 type Room struct {
@@ -49,25 +50,32 @@ type listResponse[T any] struct {
 	TotalItems int `json:"totalItems"`
 }
 
+func (a *API) GetMe() (*Member, error) {
+	var member Member
+	if err := a.get("/api/auth/me", &member); err != nil {
+		return nil, err
+	}
+	return &member, nil
+}
+
+func (a *API) ClaimInvite(code, handle, name string) (string, *Member, error) {
+	payload := map[string]string{"code": code, "handle": handle, "name": name}
+	var resp struct {
+		Token  string `json:"token"`
+		Member Member `json:"member"`
+	}
+	if err := a.post("/api/auth/claim", payload, &resp); err != nil {
+		return "", nil, err
+	}
+	return resp.Token, &resp.Member, nil
+}
+
 func (a *API) ListRooms() ([]Room, error) {
 	var resp listResponse[Room]
 	if err := a.get("/api/collections/rooms/records?sort=created", &resp); err != nil {
 		return nil, err
 	}
 	return resp.Items, nil
-}
-
-func (a *API) FindMemberByHandle(handle string) (*Member, error) {
-	var resp listResponse[Member]
-	v := url.Values{}
-	v.Set("filter", fmt.Sprintf("handle='%s'", handle))
-	if err := a.get("/api/collections/members/records?"+v.Encode(), &resp); err != nil {
-		return nil, err
-	}
-	if len(resp.Items) == 0 {
-		return nil, fmt.Errorf("member %q not found", handle)
-	}
-	return &resp.Items[0], nil
 }
 
 func (a *API) ListMessages(roomID string) ([]Message, error) {
@@ -98,7 +106,6 @@ func (a *API) SendMessage(roomID, authorID, body, parent string) (*Message, erro
 	}
 	return &msg, nil
 }
-
 
 type ReadMarker struct {
 	ID       string `json:"id"`
@@ -138,33 +145,31 @@ func (a *API) SetReadMarker(memberID, roomID, lastMsgID string) error {
 
 func (a *API) LatestMessagePerRoom(rooms []Room) (map[string]string, error) {
 	result := make(map[string]string)
-	for _, r := range rooms {
+	for _, room := range rooms {
 		var resp listResponse[Message]
 		v := url.Values{}
-		v.Set("filter", fmt.Sprintf("room='%s'", r.ID))
+		v.Set("filter", fmt.Sprintf("room='%s'", room.ID))
 		v.Set("sort", "-created")
 		v.Set("perPage", "1")
 		if err := a.get("/api/collections/messages/records?"+v.Encode(), &resp); err != nil {
 			continue
 		}
 		if len(resp.Items) > 0 {
-			result[r.ID] = resp.Items[0].ID
+			result[room.ID] = resp.Items[0].ID
 		}
 	}
 	return result, nil
 }
 
-func (a *API) UpdateMessage(id, body string) error {
-	payload := map[string]string{"body": body}
-	return a.patch("/api/collections/messages/records/"+id, payload)
-}
-
-func (a *API) DeleteMessage(id string) error {
-	return a.del("/api/collections/messages/records/" + id)
-}
-
 func (a *API) get(path string, out any) error {
-	resp, err := a.client.Get(a.base + path)
+	req, err := http.NewRequest("GET", a.base+path, nil)
+	if err != nil {
+		return err
+	}
+	if a.token != "" {
+		req.Header.Set("Authorization", "Bearer "+a.token)
+	}
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -181,7 +186,15 @@ func (a *API) post(path string, payload any, out any) error {
 	if err != nil {
 		return err
 	}
-	resp, err := a.client.Post(a.base+path, "application/json", bytes.NewReader(data))
+	req, err := http.NewRequest("POST", a.base+path, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if a.token != "" {
+		req.Header.Set("Authorization", "Bearer "+a.token)
+	}
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -206,6 +219,9 @@ func (a *API) patch(path string, payload any) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if a.token != "" {
+		req.Header.Set("Authorization", "Bearer "+a.token)
+	}
 	resp, err := a.client.Do(req)
 	if err != nil {
 		return err
@@ -214,23 +230,6 @@ func (a *API) patch(path string, payload any) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("PATCH %s: %d %s", path, resp.StatusCode, string(body))
-	}
-	return nil
-}
-
-func (a *API) del(path string) error {
-	req, err := http.NewRequest("DELETE", a.base+path, nil)
-	if err != nil {
-		return err
-	}
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("DELETE %s: %d %s", path, resp.StatusCode, string(body))
 	}
 	return nil
 }

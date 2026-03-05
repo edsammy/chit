@@ -16,7 +16,7 @@ type sseRecord struct {
 	Record Message `json:"record"`
 }
 
-func watchMessages(base, botID, claudeRoomID string, handler *ClaudeHandler) {
+func watchMessages(base, token, botID, claudeRoomID string, handler *ClaudeHandler) {
 	seen := struct {
 		sync.Mutex
 		ids map[string]bool
@@ -25,7 +25,7 @@ func watchMessages(base, botID, claudeRoomID string, handler *ClaudeHandler) {
 	backoff := time.Second
 
 	for {
-		err := listenSSE(base, func(record sseRecord) {
+		err := listenSSE(base, token, func(record sseRecord) {
 
 			msg := record.Record
 			if record.Action != "create" {
@@ -63,8 +63,15 @@ func watchMessages(base, botID, claudeRoomID string, handler *ClaudeHandler) {
 	}
 }
 
-func listenSSE(base string, onMessage func(sseRecord)) error {
-	resp, err := http.Get(base + "/api/realtime")
+func listenSSE(base, token string, onMessage func(sseRecord)) error {
+	req, err := http.NewRequest("GET", base+"/api/realtime", nil)
+	if err != nil {
+		return fmt.Errorf("creating SSE request: %w", err)
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("connecting to SSE: %w", err)
 	}
@@ -88,7 +95,7 @@ func listenSSE(base string, onMessage func(sseRecord)) error {
 			if json.Unmarshal([]byte(data), &connect) == nil && connect.ClientID != "" {
 				clientID = connect.ClientID
 				log.Printf("SSE connected, subscribing (clientID=%s)", clientID)
-				if err := subscribeSSE(base, clientID); err != nil {
+				if err := subscribeSSE(base, token, clientID); err != nil {
 					return fmt.Errorf("subscribing: %w", err)
 				}
 				continue
@@ -105,9 +112,17 @@ func listenSSE(base string, onMessage func(sseRecord)) error {
 	return scanner.Err()
 }
 
-func subscribeSSE(base, clientID string) error {
+func subscribeSSE(base, token, clientID string) error {
 	body := fmt.Sprintf(`{"clientId":"%s","subscriptions":["messages"]}`, clientID)
-	resp, err := http.Post(base+"/api/realtime", "application/json", strings.NewReader(body))
+	req, err := http.NewRequest("POST", base+"/api/realtime", strings.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}

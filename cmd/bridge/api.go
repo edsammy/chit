@@ -11,11 +11,20 @@ import (
 
 type API struct {
 	base   string
+	token  string
 	client *http.Client
 }
 
-func NewAPI(base string) *API {
-	return &API{base: base, client: &http.Client{}}
+func NewAPI(base, token string) *API {
+	return &API{base: base, token: token, client: &http.Client{}}
+}
+
+func (a *API) GetMe() (*Member, error) {
+	var member Member
+	if err := a.get("/api/auth/me", &member); err != nil {
+		return nil, err
+	}
+	return &member, nil
 }
 
 type Member struct {
@@ -137,7 +146,14 @@ func (a *API) UpdateMessage(id, body string) error {
 }
 
 func (a *API) get(path string, out any) error {
-	resp, err := a.client.Get(a.base + path)
+	req, err := http.NewRequest("GET", a.base+path, nil)
+	if err != nil {
+		return err
+	}
+	if a.token != "" {
+		req.Header.Set("Authorization", "Bearer "+a.token)
+	}
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -154,7 +170,15 @@ func (a *API) post(path string, payload any, out any) error {
 	if err != nil {
 		return err
 	}
-	resp, err := a.client.Post(a.base+path, "application/json", bytes.NewReader(data))
+	req, err := http.NewRequest("POST", a.base+path, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if a.token != "" {
+		req.Header.Set("Authorization", "Bearer "+a.token)
+	}
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -179,6 +203,9 @@ func (a *API) patch(path string, payload any) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if a.token != "" {
+		req.Header.Set("Authorization", "Bearer "+a.token)
+	}
 	resp, err := a.client.Do(req)
 	if err != nil {
 		return err

@@ -78,7 +78,6 @@ func renderMarkdown(s string) string {
 			continue
 		}
 
-		// Headings.
 		if strings.HasPrefix(trimmed, "# ") || strings.HasPrefix(trimmed, "## ") || strings.HasPrefix(trimmed, "### ") {
 			out = append(out, headingStyle.Render(line))
 			continue
