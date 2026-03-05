@@ -45,13 +45,9 @@ func envOr(key, def string) string {
 
 type roomsLoadedMsg struct{ rooms []Room }
 type messagesLoadedMsg struct {
-	messages  []Message
-	reactions []Reaction
+	messages []Message
 }
 type messageSentMsg struct{}
-type messageEditedMsg struct{}
-type messageDeletedMsg struct{}
-type reactionAddedMsg struct{}
 type readMarkersLoadedMsg struct {
 	markers map[string]string
 	latest  map[string]string
@@ -60,21 +56,10 @@ type errMsg struct{ err error }
 type dotTickMsg struct{}
 
 
-type editMode int
-
-const (
-	modeNone   editMode = iota
-	modeEdit            // editing existing message
-	modeDelete          // confirming delete
-	modeReply           // replying to a message
-	modeReact           // picking a reaction char
-)
-
 type displayMsg struct {
 	msg        Message
 	isThread   bool
 	replyCount int
-	reactions  map[string]int
 }
 
 type model struct {
@@ -84,7 +69,6 @@ type model struct {
 	rooms     []Room
 	roomIdx   int
 	messages  []Message
-	reactions []Reaction
 	display   []displayMsg
 	input     string
 	cursor    int
@@ -95,11 +79,6 @@ type model struct {
 	focusRooms bool
 	viewport   viewport.Model
 	ready bool
-
-	msgIdx  int // selected display index (-1 = none)
-	mode    editMode
-	editID  string
-	replyID string
 
 	threadViewID string
 
@@ -115,11 +94,19 @@ func (m *model) clearInput() {
 	m.cursor = 0
 }
 
+func (m model) errorsRoomID() string {
+	for _, room := range m.rooms {
+		if room.Name == "errors" {
+			return room.ID
+		}
+	}
+	return ""
+}
+
 func initialModel(api *API, me *Member) model {
 	return model{
 		api:         api,
 		me:          me,
-		msgIdx:      -1,
 		readMarkers: make(map[string]string),
 		latestMsgs:  make(map[string]string),
 		dotCount:    1,
@@ -201,13 +188,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case readMarkersLoadedMsg:
-		m.readMarkers = msg.markers
-		m.latestMsgs = msg.latest
+		for roomID, serverRead := range msg.markers {
+			if local, ok := m.readMarkers[roomID]; !ok || local < serverRead {
+				m.readMarkers[roomID] = serverRead
+			}
+		}
+		for roomID, serverLatest := range msg.latest {
+			if local, ok := m.latestMsgs[roomID]; !ok || local < serverLatest {
+				m.latestMsgs[roomID] = serverLatest
+			}
+		}
 		return m, nil
 
 	case messagesLoadedMsg:
 		m.messages = msg.messages
-		m.reactions = msg.reactions
 		m.buildDisplay()
 		m.dotActive = m.hasPendingDots()
 		m.refreshViewport()
@@ -234,14 +228,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.refreshViewport()
 		return m, dotTick()
 
-	case messageSentMsg, messageEditedMsg, messageDeletedMsg, reactionAddedMsg:
+	case messageSentMsg:
 		m.clearInput()
-		m.mode = modeNone
-		m.editID = ""
-		m.replyID = ""
-		m.msgIdx = -1
 		if len(m.rooms) > 0 {
-			return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
+			roomID := m.rooms[m.roomIdx].ID
+			return m, loadMessages(m.api, roomID)
 		}
 		return m, nil
 

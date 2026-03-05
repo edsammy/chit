@@ -65,6 +65,6 @@ func listenSSE(base string, p *tea.Program) error {
 }
 
 func subscribe(base, clientID string) {
-	body := fmt.Sprintf(`{"clientId":"%s","subscriptions":["messages","reactions"]}`, clientID)
+	body := fmt.Sprintf(`{"clientId":"%s","subscriptions":["messages"]}`, clientID)
 	http.Post(base+"/api/realtime", "application/json", strings.NewReader(body))
 }

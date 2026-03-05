@@ -26,8 +26,6 @@ var (
 	authorStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("6"))
 	botStyle         = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("5"))
 	titleStyle       = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Padding(0, 1)
-	selectStyle      = lipgloss.NewStyle().Background(lipgloss.Color("4")).Foreground(lipgloss.Color("15")).Bold(true)
-	reactionStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Bold(true)
 	editBarStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true)
 	threadBadgeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("4")).Italic(true)
 	hintStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
@@ -74,13 +72,7 @@ func (m model) View() string {
 	if m.err != nil {
 		status = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render("err: "+m.err.Error()) + "\n"
 	}
-	if m.msgIdx >= 0 && m.mode == modeNone {
-		if m.threadViewID != "" {
-			status = hintStyle.Render(" e:edit  d:delete  r:reply  s:react  esc:back") + "\n"
-		} else {
-			status = hintStyle.Render(" t:thread  e:edit  d:delete  r:reply  s:react  esc:back") + "\n"
-		}
-	}
+
 
 	top := lipgloss.JoinHorizontal(lipgloss.Top, roomPanel, msgPanel)
 	return top + "\n" + status + inputPanel
@@ -88,34 +80,13 @@ func (m model) View() string {
 
 func (m model) viewInput() string {
 	inputW := m.width - 4
-	var content string
-
-	switch m.mode {
-	case modeDelete:
-		content = editBarStyle.Render("delete this message? (y/n)")
-	case modeReact:
-		content = editBarStyle.Render("react: * (star)  + (agree)  ! (important)  ? (confused)  ~ (unsure)")
-	default:
-		prompt := "> "
-		switch m.mode {
-		case modeEdit:
-			prompt = editBarStyle.Render("[edit] ") + "> "
-		case modeReply:
-			prompt = editBarStyle.Render("[reply] ") + "> "
-		default:
-			if m.threadViewID != "" {
-				prompt = editBarStyle.Render("[thread] ") + "> "
-			}
-		}
-		if m.focusRooms || m.msgIdx >= 0 {
-			content = prompt + m.input
-		} else {
-			before := m.input[:m.cursor]
-			after := m.input[m.cursor:]
-			content = prompt + before + "\u2588" + after
-		}
+	prompt := "> "
+	if m.threadViewID != "" {
+		prompt = editBarStyle.Render("[thread] ") + "> "
 	}
-
+	before := m.input[:m.cursor]
+	after := m.input[m.cursor:]
+	content := prompt + before + "\u2588" + after
 	return inputStyle.Width(inputW).Render(content)
 }
 
@@ -125,6 +96,9 @@ func (m model) viewRooms() string {
 	lines = append(lines, header, "")
 
 	for i, room := range m.rooms {
+		if room.Name == "errors" {
+			continue
+		}
 		name := "#" + room.Name
 		marker := "  "
 
@@ -146,6 +120,15 @@ func (m model) viewRooms() string {
 		lines = append(lines, name)
 	}
 
+	if errID := m.errorsRoomID(); errID != "" {
+		lastRead := m.readMarkers[errID]
+		latest := m.latestMsgs[errID]
+		if latest != "" && latest != lastRead {
+			warn := lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Bold(true).Render("⚠ errors")
+			lines = append(lines, "", warn)
+		}
+	}
+
 	return strings.Join(lines, "\n")
 }
 
@@ -164,7 +147,7 @@ func (m model) renderMessages() string {
 		lines = append(lines, hintStyle.Render("── thread (esc to go back) ──"), "")
 	}
 
-	for i, dm := range m.display {
+	for _, dm := range m.display {
 		msg := dm.msg
 		handle := msg.Author
 		isBot := false
@@ -213,11 +196,6 @@ func (m model) renderMessages() string {
 		}
 		body = strings.Join(bodyLines, "\n")
 
-		if i == m.msgIdx {
-			header = selectStyle.Render(header)
-			body = selectStyle.Render(body)
-		}
-
 		lines = append(lines, header, body)
 
 		if !dm.isThread && dm.replyCount > 0 && m.threadViewID == "" {
@@ -226,18 +204,6 @@ func (m model) renderMessages() string {
 				badge = "[1 reply]"
 			}
 			lines = append(lines, "    "+threadBadgeStyle.Render(badge))
-		}
-
-		if len(dm.reactions) > 0 {
-			var parts []string
-			for _, ch := range []string{"*", "+", "!", "?", "~"} {
-				if n, ok := dm.reactions[ch]; ok {
-					parts = append(parts, reactionStyle.Render(fmt.Sprintf("[%s %d]", ch, n)))
-				}
-			}
-			if len(parts) > 0 {
-				lines = append(lines, "    "+strings.Join(parts, " "))
-			}
 		}
 
 		lines = append(lines, "")
@@ -276,14 +242,6 @@ func formatTimestamp(created string) string {
 }
 
 func (m *model) buildDisplay() {
-	reactionMap := make(map[string]map[string]int)
-	for _, r := range m.reactions {
-		if reactionMap[r.Message] == nil {
-			reactionMap[r.Message] = make(map[string]int)
-		}
-		reactionMap[r.Message][r.Char]++
-	}
-
 	var topLevel []Message
 	threads := make(map[string][]Message)
 	msgByID := make(map[string]Message)
@@ -300,15 +258,11 @@ func (m *model) buildDisplay() {
 
 	if m.threadViewID != "" {
 		if parent, ok := msgByID[m.threadViewID]; ok {
-			m.display = append(m.display, displayMsg{
-				msg:       parent,
-				reactions: reactionMap[parent.ID],
-			})
+			m.display = append(m.display, displayMsg{msg: parent})
 			for _, reply := range threads[m.threadViewID] {
 				m.display = append(m.display, displayMsg{
-					msg:       reply,
-					isThread:  true,
-					reactions: reactionMap[reply.ID],
+					msg:      reply,
+					isThread: true,
 				})
 			}
 		}
@@ -319,7 +273,6 @@ func (m *model) buildDisplay() {
 		m.display = append(m.display, displayMsg{
 			msg:        msg,
 			replyCount: len(threads[msg.ID]),
-			reactions:  reactionMap[msg.ID],
 		})
 	}
 }

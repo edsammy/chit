@@ -281,17 +281,10 @@ Dedicated room for meta-coding discussions. Claude posts updates about
 self-modifications here. Keeps the noise out of #general.
 
 
-## Reactions
+## Reactions (removed for MVP, add back later)
 
-ASCII reactions. No emoji picker, no Unicode.
-
-```
-jake 10:32am
-pushed the webhook handler
-  [* 2] [+ 1]
-```
-
-Characters: `*` (star), `+` (agree), `!` (important), `?` (confused), `~` (unsure)
+Stripped for simplicity. Server still has the `reactions` collection.
+Characters when re-added: `*` (star), `+` (agree), `!` (important), `?` (confused), `~` (unsure)
 
 
 ## Threads

@@ -44,17 +44,6 @@ type Message struct {
 	} `json:"expand"`
 }
 
-type Reaction struct {
-	ID      string `json:"id"`
-	Message string `json:"message"`
-	User    string `json:"user"`
-	Char    string `json:"char"`
-
-	Expand struct {
-		User *Member `json:"user"`
-	} `json:"expand"`
-}
-
 type listResponse[T any] struct {
 	Items      []T `json:"items"`
 	TotalItems int `json:"totalItems"`
@@ -62,7 +51,7 @@ type listResponse[T any] struct {
 
 func (a *API) ListRooms() ([]Room, error) {
 	var resp listResponse[Room]
-	if err := a.get("/api/collections/rooms/records?sort=name", &resp); err != nil {
+	if err := a.get("/api/collections/rooms/records?sort=created", &resp); err != nil {
 		return nil, err
 	}
 	return resp.Items, nil
@@ -110,25 +99,6 @@ func (a *API) SendMessage(roomID, authorID, body, parent string) (*Message, erro
 	return &msg, nil
 }
 
-func (a *API) ListReactionsForRoom(roomID string) ([]Reaction, error) {
-	var resp listResponse[Reaction]
-	v := url.Values{}
-	v.Set("expand", "user")
-	v.Set("perPage", "500")
-	if err := a.get("/api/collections/reactions/records?"+v.Encode(), &resp); err != nil {
-		return nil, err
-	}
-	return resp.Items, nil
-}
-
-func (a *API) AddReaction(messageID, userID, char string) error {
-	payload := map[string]string{
-		"message": messageID,
-		"user":    userID,
-		"char":    char,
-	}
-	return a.post("/api/collections/reactions/records", payload, nil)
-}
 
 type ReadMarker struct {
 	ID       string `json:"id"`
