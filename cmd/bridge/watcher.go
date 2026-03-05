@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -16,17 +17,17 @@ type sseRecord struct {
 	Record Message `json:"record"`
 }
 
-func watchMessages(base, token, botID, claudeRoomID string, handler *ClaudeHandler) {
+func watchMessages(ctx context.Context, base, token, botID, claudeRoomID string, handler *ClaudeHandler) {
 	seen := struct {
 		sync.Mutex
 		ids map[string]bool
 	}{ids: make(map[string]bool)}
 
+	var wg sync.WaitGroup
 	backoff := time.Second
 
 	for {
-		err := listenSSE(base, token, func(record sseRecord) {
-
+		err := listenSSE(ctx, base, token, func(record sseRecord) {
 			msg := record.Record
 			if record.Action != "create" {
 				return
@@ -47,24 +48,32 @@ func watchMessages(base, token, botID, claudeRoomID string, handler *ClaudeHandl
 			seen.Unlock()
 
 			log.Printf("message %s in #claude", msg.ID)
-			go handler.Handle(msg)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				handler.Handle(msg)
+			}()
 		})
 
+		if ctx.Err() != nil {
+			log.Printf("shutting down, waiting for in-flight requests...")
+			wg.Wait()
+			log.Printf("bridge stopped")
+			return
+		}
+
 		if err != nil {
-			log.Printf("SSE error: %v, reconnecting in %v", err, backoff)
-			time.Sleep(backoff)
-			if backoff < 30*time.Second {
-				backoff *= 2
-			}
-		} else {
-			backoff = time.Second
-			log.Printf("SSE disconnected, reconnecting")
+			log.Printf("SSE error: %v", err)
+		}
+		time.Sleep(backoff)
+		if backoff < 30*time.Second {
+			backoff *= 2
 		}
 	}
 }
 
-func listenSSE(base, token string, onMessage func(sseRecord)) error {
-	req, err := http.NewRequest("GET", base+"/api/realtime", nil)
+func listenSSE(ctx context.Context, base, token string, onMessage func(sseRecord)) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", base+"/api/realtime", nil)
 	if err != nil {
 		return fmt.Errorf("creating SSE request: %w", err)
 	}

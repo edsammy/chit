@@ -215,8 +215,7 @@ func (m *model) hasPendingDots() bool {
 	}
 	last := m.display[len(m.display)-1]
 	if last.msg.Expand.Author != nil && last.msg.Expand.Author.IsBot {
-		body := last.msg.Body
-		return body == "." || body == ".." || body == "..."
+		return isPendingDots(last.msg.Body)
 	}
 	return false
 }

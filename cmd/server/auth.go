@@ -56,7 +56,9 @@ func registerAuth(se *core.ServeEvent, app *pocketbase.PocketBase) {
 
 		invite.Set("used", true)
 		invite.Set("claimed_by", member.Id)
-		app.Save(invite)
+		if err := app.Save(invite); err != nil {
+			return e.JSON(500, map[string]string{"error": "failed to mark invite as used"})
+		}
 
 		return e.JSON(200, map[string]any{
 			"token": token,

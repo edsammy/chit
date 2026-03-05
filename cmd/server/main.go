@@ -244,21 +244,4 @@ func strPtr(s string) *string { return &s }
 
 func registerHooks(se *core.ServeEvent, app *pocketbase.PocketBase) {
 	registerAuth(se, app)
-
-	se.Router.POST("/api/hooks/claude", func(e *core.RequestEvent) error {
-		return e.JSON(200, map[string]string{"status": "ok", "message": "claude hook placeholder"})
-	})
-
-	se.Router.POST("/api/hooks/claude/thread", func(e *core.RequestEvent) error {
-		return e.JSON(200, map[string]string{"status": "ok", "message": "claude thread placeholder"})
-	})
-
-	se.Router.POST("/api/hooks/claude/share", func(e *core.RequestEvent) error {
-		return e.JSON(200, map[string]string{"status": "ok", "message": "claude share placeholder"})
-	})
-
-	se.Router.POST("/api/hooks/github", func(e *core.RequestEvent) error {
-		return e.JSON(200, map[string]string{"status": "ok", "message": "github hook placeholder"})
-	})
-
 }

@@ -56,9 +56,6 @@ func (m model) View() string {
 	var roomTitle string
 	if len(m.rooms) > 0 {
 		roomTitle = "#" + m.rooms[m.roomIdx].Name
-		if topic := m.rooms[m.roomIdx].Topic; topic != "" {
-			roomTitle += " — " + topic
-		}
 	}
 	msgPanel := msgBorderStyle.
 		Width(msgW - 2).

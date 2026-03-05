@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 )
 
 func main() {
@@ -51,8 +54,11 @@ func main() {
 	handler := NewClaudeHandler(api, bot, claudeRoom.ID, errRoomID, string(systemPrompt), projectDir, maxTurns)
 	log.Printf("claude working directory: %s", projectDir)
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	log.Printf("connecting to SSE at %s", server)
-	watchMessages(server, token, bot.ID, claudeRoom.ID, handler)
+	watchMessages(ctx, server, token, bot.ID, claudeRoom.ID, handler)
 }
 
 func envOr(key, def string) string {
