@@ -1,8 +1,5 @@
 # Binaries
-/chit
-/chit-server
-/chit-bridge
-/seed
+bin/
 dist/
 
 # PocketBase data
