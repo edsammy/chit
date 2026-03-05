@@ -42,7 +42,6 @@ func envOr(key, def string) string {
 	return def
 }
 
-// --- Tea messages ---
 
 type roomsLoadedMsg struct{ rooms []Room }
 type messagesLoadedMsg struct {
@@ -60,7 +59,6 @@ type readMarkersLoadedMsg struct {
 type errMsg struct{ err error }
 type dotTickMsg struct{}
 
-// --- Model ---
 
 type editMode int
 
@@ -134,7 +132,6 @@ func (m model) Init() tea.Cmd {
 	return loadRooms(m.api)
 }
 
-// Height reserved for input bar and chrome around it.
 const inputAreaH = 3
 
 func (m *model) resizeViewport() {
@@ -168,7 +165,6 @@ func dotTick() tea.Cmd {
 	})
 }
 
-// hasPendingDots checks if the last bot message is "...".
 func (m *model) hasPendingDots() bool {
 	if len(m.display) == 0 {
 		return false

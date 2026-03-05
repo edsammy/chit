@@ -94,10 +94,12 @@ func (m model) handleMsgSelection(key string) (tea.Model, tea.Cmd) {
 	case "down":
 		if m.msgIdx < len(m.display)-1 {
 			m.msgIdx++
+			m.refreshViewport()
 		}
 	case "up":
 		if m.msgIdx > 0 {
 			m.msgIdx--
+			m.refreshViewport()
 		}
 	case "e":
 		if m.msgIdx < len(m.display) && m.display[m.msgIdx].msg.Author == m.me.ID {
@@ -171,6 +173,8 @@ func (m model) handleTextInput(msg tea.KeyMsg, key string) (tea.Model, tea.Cmd) 
 	case "ctrl+p":
 		if len(m.display) > 0 {
 			m.msgIdx = len(m.display) - 1
+			m.refreshViewport()
+			m.viewport.GotoBottom()
 		}
 		return m, nil
 
@@ -219,7 +223,6 @@ func (m model) handleTextInput(msg tea.KeyMsg, key string) (tea.Model, tea.Cmd) 
 			m.replyID = ""
 		}
 	case "up", "down":
-		// Forward to viewport for scrolling.
 		var cmd tea.Cmd
 		m.viewport, cmd = m.viewport.Update(msg)
 		return m, cmd

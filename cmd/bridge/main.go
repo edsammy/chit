@@ -15,7 +15,7 @@ func main() {
 	handle := envOr("CHIT_BRIDGE_USER", "claude")
 	promptFile := envOr("CHIT_SYSTEM_PROMPT", "pb_hooks/claude_system_prompt.md")
 	projectDir := envOr("CHIT_PROJECT_DIR", ".")
-	maxTurns := envOrInt("CHIT_MAX_TURNS", 10)
+	maxTurns := envOrInt("CHIT_MAX_TURNS", 25)
 
 	api := NewAPI(server)
 
@@ -31,12 +31,21 @@ func main() {
 	}
 	log.Printf("streaming to #claude (%s)", claudeRoom.ID)
 
+	var errRoomID string
+	errRoom, err := api.FindRoomByName("errors")
+	if err != nil {
+		log.Printf("warning: #errors room not found, errors will only be logged")
+	} else {
+		errRoomID = errRoom.ID
+		log.Printf("errors will post to #errors (%s)", errRoomID)
+	}
+
 	systemPrompt, err := os.ReadFile(promptFile)
 	if err != nil {
 		log.Fatalf("reading system prompt %q: %v", promptFile, err)
 	}
 
-	handler := NewClaudeHandler(api, bot, claudeRoom.ID, string(systemPrompt), projectDir, maxTurns)
+	handler := NewClaudeHandler(api, bot, claudeRoom.ID, errRoomID, string(systemPrompt), projectDir, maxTurns)
 	log.Printf("claude working directory: %s", projectDir)
 
 	log.Printf("connecting to SSE at %s", server)

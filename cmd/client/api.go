@@ -111,7 +111,6 @@ func (a *API) SendMessage(roomID, authorID, body, parent string) (*Message, erro
 }
 
 func (a *API) ListReactionsForRoom(roomID string) ([]Reaction, error) {
-	// PocketBase doesn't support filtering by nested relation, so fetch all for now.
 	var resp listResponse[Reaction]
 	v := url.Values{}
 	v.Set("expand", "user")
@@ -157,7 +156,6 @@ func (a *API) SetReadMarker(memberID, roomID, lastMsgID string) error {
 		return err
 	}
 	if len(resp.Items) > 0 {
-		// Update existing.
 		return a.patch("/api/collections/read_markers/records/"+resp.Items[0].ID,
 			map[string]string{"last_read": lastMsgID})
 	}
@@ -168,7 +166,6 @@ func (a *API) SetReadMarker(memberID, roomID, lastMsgID string) error {
 	}, nil)
 }
 
-// LatestMessagePerRoom returns the last message ID for each room.
 func (a *API) LatestMessagePerRoom(rooms []Room) (map[string]string, error) {
 	result := make(map[string]string)
 	for _, r := range rooms {

@@ -27,7 +27,6 @@ func main() {
 }
 
 func ensureCollections(app *pocketbase.PocketBase) error {
-	// Pass 1: create collections with only non-relation fields.
 	type colDef struct {
 		name   string
 		fields []map[string]any
@@ -90,7 +89,6 @@ func ensureCollections(app *pocketbase.PocketBase) error {
 			}
 		}
 
-		// Add created/updated autodate fields.
 		col.Fields.Add(&core.AutodateField{Name: "created", OnCreate: true})
 		col.Fields.Add(&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
 
@@ -113,7 +111,6 @@ func ensureCollections(app *pocketbase.PocketBase) error {
 		log.Printf("created collection: %s", d.name)
 	}
 
-	// Pass 2: add relation fields to existing collections.
 	type relDef struct {
 		collection string
 		field      string
@@ -139,7 +136,6 @@ func ensureCollections(app *pocketbase.PocketBase) error {
 			return fmt.Errorf("find %s: %w", r.collection, err)
 		}
 
-		// Skip if field already exists.
 		if col.Fields.GetByName(r.field) != nil {
 			continue
 		}

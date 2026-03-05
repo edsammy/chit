@@ -16,6 +16,7 @@ type ClaudeHandler struct {
 	api          *API
 	bot          *Member
 	claudeRoomID string
+	errRoomID    string
 	systemPrompt string
 	projectDir   string
 	maxTurns     int
@@ -27,11 +28,12 @@ type ClaudeHandler struct {
 	}
 }
 
-func NewClaudeHandler(api *API, bot *Member, claudeRoomID, systemPrompt, projectDir string, maxTurns int) *ClaudeHandler {
+func NewClaudeHandler(api *API, bot *Member, claudeRoomID, errRoomID, systemPrompt, projectDir string, maxTurns int) *ClaudeHandler {
 	h := &ClaudeHandler{
 		api:          api,
 		bot:          bot,
 		claudeRoomID: claudeRoomID,
+		errRoomID:    errRoomID,
 		systemPrompt: systemPrompt,
 		projectDir:   projectDir,
 		maxTurns:     maxTurns,
@@ -69,7 +71,6 @@ func (h *ClaudeHandler) Handle(msg Message) {
 		}
 	}
 
-	// Session continuity: use the user's message as the thread key.
 	var sessionID string
 	threadKey := msg.Parent
 	if threadKey == "" {
@@ -90,6 +91,7 @@ func (h *ClaudeHandler) Handle(msg Message) {
 		if updateErr := h.api.UpdateMessage(statusMsg.ID, errBody); updateErr != nil {
 			log.Printf("patching error message: %v", updateErr)
 		}
+		h.postError(err)
 		return
 	}
 
@@ -127,7 +129,6 @@ func (h *ClaudeHandler) buildPrompt(msg Message) (string, error) {
 	return sb.String(), nil
 }
 
-// Stream event types from `claude --output-format stream-json`.
 type streamEvent struct {
 	Type    string          `json:"type"`
 	Subtype string          `json:"subtype"`
@@ -150,7 +151,7 @@ type contentBlock struct {
 }
 
 func (h *ClaudeHandler) invoke(prompt, sessionID string, onStatus func(string)) (string, string, string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 
 	args := []string{
@@ -278,7 +279,6 @@ func shortenPath(path string) string {
 }
 
 func shortModel(model string) string {
-	// "claude-opus-4-6" → "opus 4-6"
 	model = strings.TrimPrefix(model, "claude-")
 	if i := strings.LastIndex(model, "-20"); i != -1 {
 		model = model[:i]
@@ -288,8 +288,10 @@ func shortModel(model string) string {
 }
 
 func (h *ClaudeHandler) postError(origErr error) {
-	body := fmt.Sprintf("Sorry, I hit an error processing that request.\n\n```\n%s\n```", origErr)
-	if _, err := h.api.SendMessage(h.claudeRoomID, h.bot.ID, body, ""); err != nil {
-		log.Printf("failed to post error message: %v", err)
+	body := fmt.Sprintf("```\n%s\n```", origErr)
+	if h.errRoomID != "" {
+		if _, err := h.api.SendMessage(h.errRoomID, h.bot.ID, body, ""); err != nil {
+			log.Printf("failed to post to #errors: %v", err)
+		}
 	}
 }

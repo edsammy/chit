@@ -12,6 +12,8 @@ var (
 	codeStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	codeBlockStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	headingStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
+	tableStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+	hrStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 )
 
 func wordWrap(s string, width int) string {
@@ -25,7 +27,6 @@ func wordWrap(s string, width int) string {
 			continue
 		}
 		for len(line) > width {
-			// Find last space before width.
 			cut := strings.LastIndex(line[:width], " ")
 			if cut <= 0 {
 				cut = width
@@ -46,7 +47,9 @@ func renderMarkdown(s string) string {
 	var out []string
 	inCodeBlock := false
 
-	for _, line := range lines {
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
+
 		if strings.HasPrefix(line, "```") {
 			inCodeBlock = !inCodeBlock
 			out = append(out, codeBlockStyle.Render(line))
@@ -58,8 +61,24 @@ func renderMarkdown(s string) string {
 			continue
 		}
 
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "---" || trimmed == "***" || trimmed == "___" {
+			out = append(out, hrStyle.Render("────────────────────"))
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "|") {
+			var tableLines []string
+			for i < len(lines) && strings.HasPrefix(strings.TrimSpace(lines[i]), "|") {
+				tableLines = append(tableLines, lines[i])
+				i++
+			}
+			i-- // back up for the outer loop increment
+			out = append(out, renderTable(tableLines)...)
+			continue
+		}
+
 		// Headings.
-		trimmed := strings.TrimLeft(line, " ")
 		if strings.HasPrefix(trimmed, "# ") || strings.HasPrefix(trimmed, "## ") || strings.HasPrefix(trimmed, "### ") {
 			out = append(out, headingStyle.Render(line))
 			continue
@@ -72,6 +91,109 @@ func renderMarkdown(s string) string {
 	return strings.Join(out, "\n")
 }
 
+var (
+	tableHeaderStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15")).Background(lipgloss.Color("8"))
+	tableCellStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+	tableBorderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+)
+
+func renderTable(lines []string) []string {
+	var rows [][]string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		line = strings.Trim(line, "|")
+		cells := strings.Split(line, "|")
+		for j := range cells {
+			cells[j] = strings.TrimSpace(cells[j])
+		}
+		rows = append(rows, cells)
+	}
+
+	if len(rows) == 0 {
+		return nil
+	}
+
+	var dataRows [][]string
+	for _, row := range rows {
+		isSep := true
+		for _, cell := range row {
+			cleaned := strings.Trim(cell, "-: ")
+			if cleaned != "" {
+				isSep = false
+				break
+			}
+		}
+		if !isSep {
+			dataRows = append(dataRows, row)
+		}
+	}
+
+	if len(dataRows) == 0 {
+		return nil
+	}
+
+	numCols := len(dataRows[0])
+	widths := make([]int, numCols)
+	for _, row := range dataRows {
+		for j := 0; j < len(row) && j < numCols; j++ {
+			visible := stripMarkdown(row[j])
+			if len(visible) > widths[j] {
+				widths[j] = len(visible)
+			}
+		}
+	}
+
+	var borderParts []string
+	for _, w := range widths {
+		borderParts = append(borderParts, strings.Repeat("─", w+2))
+	}
+	topBorder := tableBorderStyle.Render("┌" + strings.Join(borderParts, "┬") + "┐")
+	midBorder := tableBorderStyle.Render("├" + strings.Join(borderParts, "┼") + "┤")
+	botBorder := tableBorderStyle.Render("└" + strings.Join(borderParts, "┴") + "┘")
+	sep := tableBorderStyle.Render("│")
+
+	var out []string
+	out = append(out, topBorder)
+
+	for i, row := range dataRows {
+		var parts []string
+		for j := 0; j < numCols; j++ {
+			cell := ""
+			if j < len(row) {
+				cell = row[j]
+			}
+			visible := stripMarkdown(cell)
+			pad := strings.Repeat(" ", widths[j]-len(visible))
+			styled := renderInline(cell)
+			padded := " " + styled + pad + " "
+			if i == 0 {
+				parts = append(parts, tableHeaderStyle.Render(padded))
+			} else {
+				parts = append(parts, padded)
+			}
+		}
+		out = append(out, sep+strings.Join(parts, sep)+sep)
+
+		if i == 0 {
+			out = append(out, midBorder)
+		}
+	}
+
+	out = append(out, botBorder)
+	return out
+}
+
+func stripMarkdown(s string) string {
+	s = stripDelim(s, "**")
+	s = stripDelim(s, "`")
+	s = stripDelim(s, "*")
+	return s
+}
+
+func stripDelim(s, delim string) string {
+	return strings.ReplaceAll(s, delim, "")
+}
+
 func renderInline(s string) string {
 	s = renderDelimited(s, "**", boldStyle)
 	s = renderDelimited(s, "`", codeStyle)
@@ -79,7 +201,6 @@ func renderInline(s string) string {
 	return s
 }
 
-// renderDelimited finds pairs of delimiter and applies the style.
 func renderDelimited(s, delim string, style lipgloss.Style) string {
 	for {
 		start := strings.Index(s, delim)

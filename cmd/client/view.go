@@ -149,13 +149,10 @@ func (m model) viewRooms() string {
 	return strings.Join(lines, "\n")
 }
 
-// isPendingDots returns true if the body is a placeholder "..." from the bridge.
 func isPendingDots(body string) bool {
 	return body == "." || body == ".." || body == "..."
 }
 
-// renderMessages builds the full message content string for the viewport.
-// No clipping — the viewport handles scroll and height.
 func (m model) renderMessages() string {
 	if len(m.display) == 0 {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render("no messages yet")
@@ -183,7 +180,6 @@ func (m model) renderMessages() string {
 			nameRendered = botStyle.Render(handle)
 		}
 
-		// Extract [model] tag from bot messages if present.
 		body := msg.Body
 		var modelTag string
 		if isBot && strings.HasPrefix(body, "[") {
