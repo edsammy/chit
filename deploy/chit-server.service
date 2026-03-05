@@ -1,0 +1,14 @@
+[Unit]
+Description=Chit Server
+After=network.target
+
+[Service]
+Type=simple
+User=chit
+WorkingDirectory=/opt/chit
+ExecStart=/opt/chit/bin/chit-server serve --http 127.0.0.1:8090
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

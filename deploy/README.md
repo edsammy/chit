@@ -1,0 +1,90 @@
+# Deploying Chit
+
+## Prerequisites
+
+- A VPS with Ubuntu/Debian
+- A domain pointing at the VPS IP (e.g. `chat.yourteam.com`)
+- SSH access to the VPS
+- Go installed locally (for cross-compiling)
+
+## First-time VPS setup
+
+SSH into the VPS and run:
+
+```bash
+# Create chit user and directory
+sudo useradd -r -s /bin/false chit
+sudo mkdir -p /opt/chit
+sudo chown chit:chit /opt/chit
+
+# Install Caddy
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install caddy
+
+# Install Caddyfile (edit domain first)
+sudo cp /opt/chit/deploy/Caddyfile /etc/caddy/Caddyfile
+sudo systemctl restart caddy
+
+# Install Claude CLI (for the bridge)
+# See: https://docs.anthropic.com/en/docs/claude-code
+```
+
+## Deploy
+
+From your local machine:
+
+```bash
+./deploy/deploy.sh user@your-vps-ip
+```
+
+This cross-compiles, uploads binaries, installs systemd units, and restarts services.
+
+## First run after deploy
+
+SSH into the VPS:
+
+```bash
+# Seed the database
+cd /opt/chit
+sudo -u chit bin/seed defaults
+
+# Create .bridge.env with the claude bot token from seed output
+sudo -u chit cp .bridge.env.example .bridge.env
+sudo -u chit vi .bridge.env  # paste the token
+
+# Generate invite codes for your team
+sudo -u chit bin/seed invite 5
+
+# Enable services to start on boot
+sudo systemctl enable chit-server chit-bridge
+
+# Start everything
+sudo systemctl start chit-server chit-bridge
+```
+
+## Connect
+
+On your local machine:
+
+```bash
+CHIT_SERVER=https://chat.yourteam.com ./bin/chit
+```
+
+Enter your invite code when prompted. Token is saved to `~/.config/chit/token`.
+
+## Updating
+
+After making changes locally:
+
+```bash
+./deploy/deploy.sh user@your-vps-ip
+```
+
+## Logs
+
+```bash
+sudo journalctl -u chit-server -f
+sudo journalctl -u chit-bridge -f
+```

@@ -416,14 +416,14 @@ Backups: `pb_data/data.db` is the entire platform. Push to GitHub + periodic cop
 - Cross-compile + deploy script
 
 ### Phase 6 — Self-update + client distribution
-- Deploy script (build + restart services)
-- Claude can edit code, commit, push, rebuild, redeploy
-- Guardrails: no touching pb_data, no destructive git ops
-- GitHub as safety net for all changes
-- Git commit hash baked into binaries as version
+- Cross-compile client for darwin-arm64, darwin-amd64, linux-amd64
 - Server serves client binaries at /download/:os-:arch
+- `curl | sh` install script hosted at /install.sh
+- Git commit hash baked into binaries as version
 - Version check on client startup, `*` indicator when outdated
 - `chit update` to self-replace with latest binary
+- Claude can edit code, commit, push, rebuild, redeploy
+- Guardrails: no touching pb_data, no destructive git ops
 
 ### Phase 7 — GitHub integration
 - Webhook receiver for push, PR, CI

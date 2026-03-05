@@ -1,0 +1,15 @@
+[Unit]
+Description=Chit Bridge
+After=chit-server.service
+
+[Service]
+Type=simple
+User=chit
+WorkingDirectory=/opt/chit
+EnvironmentFile=/opt/chit/.bridge.env
+ExecStart=/opt/chit/bin/chit-bridge
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

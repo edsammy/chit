@@ -1,0 +1,3 @@
+chat.yourteam.com {
+    reverse_proxy localhost:8090
+}
