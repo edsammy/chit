@@ -1,0 +1,14 @@
+# Binaries
+chit
+chit-server
+chit-bridge
+seed
+dist/
+
+# PocketBase data
+pb_data/
+
+# Editor
+.DS_Store
+*.swp
+*~
