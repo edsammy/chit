@@ -19,11 +19,12 @@ GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/chit-darwin-amd64 
 GOOS=linux  GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/chit-linux-amd64  ./cmd/client/
 
 echo "==> Uploading binaries"
-ssh "$HOST" "mkdir -p $REMOTE_DIR/bin $REMOTE_DIR/dist $REMOTE_DIR/pb_hooks"
+ssh "$HOST" "mkdir -p $REMOTE_DIR/bin $REMOTE_DIR/dist $REMOTE_DIR/pb_hooks $REMOTE_DIR/deploy"
 scp dist/chit-server dist/chit-bridge dist/seed "$HOST:$REMOTE_DIR/bin/"
 scp dist/chit-darwin-arm64 dist/chit-darwin-amd64 dist/chit-linux-amd64 "$HOST:$REMOTE_DIR/dist/"
 scp pb_hooks/claude_system_prompt.md "$HOST:$REMOTE_DIR/pb_hooks/"
 scp .bridge.env.example "$HOST:$REMOTE_DIR/"
+scp deploy/Caddyfile "$HOST:$REMOTE_DIR/deploy/"
 
 echo "==> Installing systemd units"
 scp deploy/chit-server.service deploy/chit-bridge.service "$HOST:/tmp/"
