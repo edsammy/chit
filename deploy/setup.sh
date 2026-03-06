@@ -45,16 +45,11 @@ else
     echo "Caddy already installed"
 fi
 
-echo "==> Installing Claude CLI"
-if ! command -v claude &>/dev/null; then
-    curl -fsSL https://claude.ai/install.sh | bash
-    # Make claude available to chit user
-    if [ -f /root/.local/bin/claude ]; then
-        ln -sf /root/.local/bin/claude /usr/local/bin/claude
-    fi
-    echo "Installed Claude CLI"
+echo "==> Checking Claude CLI"
+if command -v claude &>/dev/null; then
+    echo "Claude CLI installed: $(claude --version 2>&1 | head -1)"
 else
-    echo "Claude CLI already installed: $(claude --version 2>&1 | head -1)"
+    echo "Claude CLI not found — install it: curl -fsSL https://claude.ai/install.sh | bash"
 fi
 
 echo "==> Configuring git for chit user"

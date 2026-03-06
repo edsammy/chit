@@ -39,10 +39,12 @@ apt-get update && apt-get install -y caddy
 
 Skip if `caddy version` already works.
 
-## 4. Make Claude CLI available to chit user
+## 4. Verify Claude CLI
+
+Claude CLI should already be installed for the current user. Verify:
 
 ```bash
-ln -sf /root/.local/bin/claude /usr/local/bin/claude
+claude --version
 ```
 
 ## 5. Configure git for chit user
