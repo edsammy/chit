@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type API struct {
@@ -16,6 +17,9 @@ type API struct {
 }
 
 func NewAPI(base, token string) *API {
+	if !strings.HasPrefix(base, "http://") && !strings.HasPrefix(base, "https://") {
+		base = "https://" + base
+	}
 	return &API{base: base, token: token, client: &http.Client{}}
 }
 
