@@ -173,28 +173,14 @@ claude:  Got it. Here's what I'd propose: [detailed plan]
 
 ## Company Docs
 
-The team's shared knowledge lives in `docs/` in the repo — not a wiki, not Notion,
-just markdown files that Claude can read and edit like any other code.
-
-### How it works
+The team's shared knowledge lives in `docs/` in the repo and on GitHub — not a wiki,
+not Notion, just markdown files version-controlled alongside the code.
 
 - Markdown files in `docs/` at the root of the repo
-- Version controlled alongside the code. Full git history.
-- Claude can read them for context and edit them when decisions are made
-- Team members can read and update them from chat via slash commands
-
-### Slash commands
-
-- **`/doc <name>`** — reads a doc and renders it in chat. `/doc roadmap` shows `docs/roadmap.md`.
-- **`/ethos`** — shortcut for `/doc ethos`. The company ethos doc gets its own command
-  because it's referenced constantly.
-- **`/decide`** — Claude summarizes the current discussion into a decision doc. Saved to
-  `docs/decisions/` with a date prefix (e.g. `2026-03-04-pricing.md`). Captures the
-  what, why, and alternatives considered.
-- **`/update-doc <name>`** — tells Claude to update a doc based on what was just discussed.
-  Claude reads the existing doc, reads recent chat context, and makes edits.
-
-### Directory structure
+- Full git history. GitHub is the reading UI and the backup.
+- Claude reads them for context and edits them when decisions are made in chat
+- No slash commands needed — just ask Claude in #claude ("update the roadmap",
+  "write up that decision we just made") and it edits the file, commits, and pushes
 
 ```
 docs/
@@ -205,13 +191,6 @@ docs/
     ├── 2026-03-04-pricing.md
     └── 2026-03-05-auth-approach.md
 ```
-
-### Key insight
-
-These aren't a separate wiki. They're files in the repo that Claude sees and edits
-the same way it sees and edits code. When someone says "let's update the roadmap"
-in chat, Claude opens `docs/roadmap.md`, makes the change, commits, and pushes.
-No context switching, no stale wikis.
 
 
 ## Self-Update (Meta-Coding)
