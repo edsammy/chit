@@ -31,7 +31,7 @@ var (
 	timeStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 	modelStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
 	selectBarStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-	thinkingStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Italic(true)
+	thinkingStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("208")).Italic(true)
 
 	msgBorderStyle = lipgloss.NewStyle().
 			Padding(0, 1).
@@ -105,8 +105,9 @@ func (m model) viewInput() string {
 
 func (m model) viewRooms() string {
 	var lines []string
+	ver := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render("chit " + version)
 	header := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15")).Render("rooms")
-	lines = append(lines, header, "")
+	lines = append(lines, ver, "", header, "")
 
 	for i, room := range m.rooms {
 		name := "#" + room.Name
@@ -157,14 +158,21 @@ func (m *model) renderMessages() string {
 	}
 
 	var lines []string
+	lineCount := 0
 	m.msgLines = make([]int, len(m.display))
 
+	appendLine := func(s string) {
+		lines = append(lines, s)
+		lineCount += 1 + strings.Count(s, "\n")
+	}
+
 	if m.threadViewID != "" {
-		lines = append(lines, hintStyle.Render("── thread (esc to go back) ──"), "")
+		appendLine(hintStyle.Render("── thread (esc to go back) ──"))
+		appendLine("")
 	}
 
 	for di, dm := range m.display {
-		m.msgLines[di] = len(lines)
+		m.msgLines[di] = lineCount
 		msg := dm.msg
 		handle := msg.Author
 		isBot := false
@@ -182,12 +190,7 @@ func (m *model) renderMessages() string {
 
 		body := msg.Body
 
-		header := nameRendered + " "
-		if isBot && isPendingDots(msg.Body) {
-			header += thinkingStyle.Render("thinking" + strings.Repeat(".", m.dotCount))
-		} else {
-			header += timeStyle.Render(ts)
-		}
+		header := nameRendered + " " + timeStyle.Render(ts)
 		if !isBot && msg.Updated != "" && msg.Updated != msg.Created {
 			header += " " + lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render("(edited)")
 		}
@@ -200,7 +203,7 @@ func (m *model) renderMessages() string {
 			body = wordWrap(body, wrapW)
 		}
 		if isBot && isPendingDots(msg.Body) {
-			body = ""
+			body = thinkingStyle.Render("thinking" + strings.Repeat(".", m.dotCount))
 		} else if isBot {
 			body = renderMarkdown(body)
 		}
@@ -221,20 +224,23 @@ func (m *model) renderMessages() string {
 			body = strings.Join(bodyLines, "\n")
 		}
 
-		lines = append(lines, header, body)
+		appendLine(header)
+		appendLine(body)
 
 		if !dm.isThread && dm.replyCount > 0 && m.threadViewID == "" {
 			badge := fmt.Sprintf("[%d replies]", dm.replyCount)
 			if dm.replyCount == 1 {
 				badge = "[1 reply]"
 			}
-			lines = append(lines, "    "+threadBadgeStyle.Render(badge))
+			appendLine("    " + threadBadgeStyle.Render(badge))
 		}
 
-		lines = append(lines, "")
+		appendLine("")
 	}
 
-	lines = append(lines, "", "", "")
+	appendLine("")
+	appendLine("")
+	appendLine("")
 
 	return strings.Join(lines, "\n")
 }

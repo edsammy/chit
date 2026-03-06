@@ -76,6 +76,7 @@ Your laptop                          VPS
 | `Shift+Left/Right` | Enter/exit room navigation |
 | `Shift+Up/Down` | Select messages (enter selection mode) |
 | `Up/Down` | Scroll messages / navigate rooms |
+| `t` | Open thread (in selection mode) |
 | `r` | Reply to selected message |
 | `e` | Edit selected message (own only) |
 | `d` | Delete selected message (own only, confirms) |
@@ -94,8 +95,8 @@ See [deploy/README.md](deploy/README.md).
 ## Install (from a running server)
 
 ```sh
-curl -fsSL https://chat.yourteam.com/install.sh | sh
-CHIT_SERVER=https://chat.yourteam.com chit
+curl -fsSL https://chit.nance.app/install.sh | sh
+CHIT_SERVER=https://chit.nance.app chit
 ```
 
 ## License

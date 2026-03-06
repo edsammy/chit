@@ -45,6 +45,7 @@ func listenSSE(base, token string, p *tea.Program) error {
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0, 256*1024), 256*1024)
 	var clientID string
+	var lastSend time.Time
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -64,7 +65,8 @@ func listenSSE(base, token string, p *tea.Program) error {
 			}
 		}
 
-		if clientID != "" {
+		if clientID != "" && time.Since(lastSend) >= 500*time.Millisecond {
+			lastSend = time.Now()
 			p.Send(sseEvent{})
 		}
 	}

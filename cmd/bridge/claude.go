@@ -92,10 +92,16 @@ func (h *ClaudeHandler) Handle(msg Message) {
 	sessionID = h.sessions.m[threadKey]
 	h.sessions.Unlock()
 
-	result, newSessionID, model, err := h.invoke(prompt, sessionID, onUpdate)
+	onModel := func(model string) {
+		if err := h.api.UpdateMessageFields(statusMsg.ID, "", model); err != nil {
+			log.Printf("patching model tag: %v", err)
+		}
+	}
+
+	result, newSessionID, model, err := h.invoke(prompt, sessionID, onUpdate, onModel)
 	if err != nil && sessionID != "" {
 		log.Printf("resume failed, retrying fresh: %v", err)
-		result, newSessionID, model, err = h.invoke(prompt, "", onUpdate)
+		result, newSessionID, model, err = h.invoke(prompt, "", onUpdate, onModel)
 	}
 	if err != nil {
 		log.Printf("claude invocation failed for %s: %v", msg.ID, err)
@@ -159,7 +165,7 @@ type contentBlock struct {
 	Input json.RawMessage `json:"input"`
 }
 
-func (h *ClaudeHandler) invoke(prompt, sessionID string, onUpdate func(text, status string)) (string, string, string, error) {
+func (h *ClaudeHandler) invoke(prompt, sessionID string, onUpdate func(text, status string), onModel func(model string)) (string, string, string, error) {
 	ctx, cancel := context.WithTimeout(h.ctx, 15*time.Minute)
 	defer cancel()
 
@@ -209,6 +215,7 @@ func (h *ClaudeHandler) invoke(prompt, sessionID string, onUpdate func(text, sta
 		case "system":
 			if event.Model != "" {
 				resultModel = event.Model
+				onModel(shortModel(resultModel))
 			}
 		case "assistant":
 			if event.Message != nil {

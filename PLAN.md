@@ -260,10 +260,10 @@ See `deploy/INSTALL.md` for full setup instructions (designed for Claude to foll
 
 ### Phase 3 — Bridge + Claude ✓
 - Bridge daemon: SSE listener -> context assembly -> claude -p -> post response
-- Streaming output with live dot animation
+- Streaming output with live message updates and tool activity status
 - #claude dedicated channel
 - Session continuity via claude --resume
-- Model tag display ([opus 4-6]) in message headers
+- Model tag as dedicated field, displayed in message headers
 - CHIT_PROJECT_DIR for pointing Claude at target codebase
 - #errors channel for bridge error logging (hidden from client)
 
@@ -271,20 +271,26 @@ See `deploy/INSTALL.md` for full setup instructions (designed for Claude to foll
 - Caddy (TLS) + systemd on VPS
 - Build on VPS, Claude-driven install via INSTALL.md
 - Cross-compile client binaries for download
-- `make deploy` for one-command rebuild + restart
+- `make deploy` for hot-swap rebuild + restart (sub-second downtime)
 
-### Phase 5 — Client polish (next)
-- Version check on startup, outdated indicator in status bar
-- `chit update` to self-replace with latest binary
-- Thin web client for mobile (single HTML page)
+### Phase 5 — Client distribution ✓
+- Server serves client binaries at /download/{platform} and /install.sh
+- `curl -fsSL https://chit.nance.app/install.sh | sh` installs to ~/.local/bin
 
-### Phase 6 — GitHub integration
+### Phase 6 — Client polish ✓
+- Message selection mode (shift+up/down) with reply, edit, delete
+- Deterministic handle-based username colors
+- Unread indicators with read markers
+- Thinking animation for bot responses
+- Version display in room panel
+- Markdown rendering (bold, italic, code, tables, headings)
+
+### Phase 7 — GitHub integration
 - Webhook receiver for push, PR, CI events
 - GitHub bot user posts events to rooms
 
-### Phase 7 — Polish
+### Phase 8 — Future
 - Search
 - File sharing
-- Room-level summaries (ask Claude)
-- Edit/delete messages
 - Reactions
+- Room-level summaries (ask Claude)

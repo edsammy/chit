@@ -149,7 +149,10 @@ func (a *API) UpdateMessage(id, body string) error {
 }
 
 func (a *API) UpdateMessageFields(id, body, model string) error {
-	payload := map[string]string{"body": body}
+	payload := map[string]string{}
+	if body != "" {
+		payload["body"] = body
+	}
 	if model != "" {
 		payload["model"] = model
 	}

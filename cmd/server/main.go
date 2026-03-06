@@ -173,14 +173,26 @@ func ensureCollections(app *pocketbase.PocketBase) error {
 		log.Printf("added relation: %s.%s -> %s", r.collection, r.field, r.target)
 	}
 
-	if err := migrateTokenField(app); err != nil {
-		return fmt.Errorf("migrate token field: %w", err)
+	if err := migrateFields(app); err != nil {
+		return fmt.Errorf("migrate fields: %w", err)
 	}
 
 	return nil
 }
 
-func migrateTokenField(app *pocketbase.PocketBase) error {
+func migrateFields(app *pocketbase.PocketBase) error {
+	// Add model field to messages
+	if col, err := app.FindCollectionByNameOrId("messages"); err == nil {
+		if col.Fields.GetByName("model") == nil {
+			col.Fields.Add(&core.TextField{Name: "model"})
+			if err := app.Save(col); err != nil {
+				return fmt.Errorf("add model field: %w", err)
+			}
+			log.Printf("migrated: added model field to messages")
+		}
+	}
+
+	// Add token field to members + backfill
 	col, err := app.FindCollectionByNameOrId("members")
 	if err != nil {
 		return nil

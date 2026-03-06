@@ -184,6 +184,7 @@ func stripMarkdown(s string) string {
 	s = stripDelim(s, "**")
 	s = stripDelim(s, "`")
 	s = stripDelim(s, "*")
+	s = stripDelim(s, "_")
 	return s
 }
 
@@ -195,6 +196,7 @@ func renderInline(s string) string {
 	s = renderDelimited(s, "**", boldStyle)
 	s = renderDelimited(s, "`", codeStyle)
 	s = renderDelimited(s, "*", italicStyle)
+	s = renderDelimited(s, "_", italicStyle)
 	return s
 }
 

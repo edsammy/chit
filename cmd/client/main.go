@@ -124,7 +124,9 @@ type messagesLoadedMsg struct {
 type messageSentMsg struct{}
 type readMarkersLoadedMsg struct {
 	markers map[string]string
-	latest  map[string]string
+}
+type latestMsgsLoadedMsg struct {
+	latest map[string]string
 }
 type errMsg struct{ err error }
 type errClearMsg struct{}
@@ -163,9 +165,8 @@ type model struct {
 	editID        string
 	threadViewID  string
 
-	readMarkers      map[string]string
-	localReadMarkers map[string]string // set locally, may not be on server yet
-	latestMsgs       map[string]string
+	readMarkers map[string]string
+	latestMsgs  map[string]string
 
 	snapToBottom bool
 	dotCount     int
@@ -182,8 +183,7 @@ func initialModel(api *API, me *Member) model {
 		api:         api,
 		me:          me,
 		msgIdx:      -1,
-		readMarkers:      make(map[string]string),
-		localReadMarkers: make(map[string]string),
+		readMarkers: make(map[string]string),
 		latestMsgs:  make(map[string]string),
 		dotCount:    1,
 		viewport:    viewport.New(0, 0),
@@ -215,12 +215,8 @@ func (m *model) resizeViewport() {
 
 func (m *model) refreshViewport() {
 	atBottom := m.viewport.AtBottom()
-	prevOffset := m.viewport.YOffset
 	content := m.renderMessages()
 	m.viewport.SetContent(content)
-	if m.msgIdx >= 0 {
-		m.viewport.SetYOffset(prevOffset)
-	}
 	if m.msgIdx >= 0 && m.msgIdx < len(m.msgLines) {
 		m.scrollToMsg(m.msgIdx)
 	} else if atBottom || m.snapToBottom {
@@ -278,37 +274,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if len(m.rooms) > 0 {
 			return m, tea.Batch(
 				loadMessages(m.api, m.rooms[m.roomIdx].ID),
-				loadReadMarkers(m.api, m.me.ID, m.rooms),
+				loadReadMarkers(m.api, m.me.ID),
+				loadLatestMsgs(m.api, m.rooms),
 			)
 		}
 		return m, nil
 
 	case readMarkersLoadedMsg:
-		// Current room's read marker is managed locally in messagesLoadedMsg.
-		// Server value may lag (async SetReadMarker), so skip it here.
-		currentRoomID := ""
-		if len(m.rooms) > 0 {
-			currentRoomID = m.rooms[m.roomIdx].ID
+		for roomID, lastRead := range msg.markers {
+			m.readMarkers[roomID] = lastRead
 		}
-		for roomID, serverRead := range msg.markers {
-			if roomID == currentRoomID {
-				continue
-			}
-			// don't overwrite a local marker that the server hasn't caught up to
-			if local, ok := m.localReadMarkers[roomID]; ok && local != serverRead {
-				continue
-			}
-			m.readMarkers[roomID] = serverRead
-			delete(m.localReadMarkers, roomID) // server caught up
-		}
-		for roomID, serverLatest := range msg.latest {
-			m.latestMsgs[roomID] = serverLatest
+		return m, nil
+
+	case latestMsgsLoadedMsg:
+		for roomID, latest := range msg.latest {
+			m.latestMsgs[roomID] = latest
 		}
 		return m, nil
 
 	case messagesLoadedMsg:
 		m.messages = msg.messages
 		m.buildDisplay()
+		wasDotActive := m.dotActive
 		m.dotActive = m.hasPendingDots()
 		m.refreshViewport()
 		if len(m.rooms) > 0 && len(m.messages) > 0 {
@@ -316,13 +303,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			lastID := m.messages[len(m.messages)-1].ID
 			if m.readMarkers[roomID] != lastID {
 				m.readMarkers[roomID] = lastID
-				m.localReadMarkers[roomID] = lastID
 				m.latestMsgs[roomID] = lastID
 				go m.api.SetReadMarker(m.me.ID, roomID, lastID)
 			}
 		}
 		var cmd tea.Cmd
-		if m.dotActive {
+		if m.dotActive && !wasDotActive {
 			cmd = dotTick()
 		}
 		return m, cmd
@@ -347,7 +333,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if len(m.rooms) > 0 {
 			return m, tea.Batch(
 				loadMessages(m.api, m.rooms[m.roomIdx].ID),
-				loadReadMarkers(m.api, m.me.ID, m.rooms),
+				loadLatestMsgs(m.api, m.rooms),
 			)
 		}
 		return m, nil

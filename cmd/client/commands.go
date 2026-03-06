@@ -61,7 +61,7 @@ func deleteMessage(api *API, id string) tea.Cmd {
 	}
 }
 
-func loadReadMarkers(api *API, memberID string, rooms []Room) tea.Cmd {
+func loadReadMarkers(api *API, memberID string) tea.Cmd {
 	return func() tea.Msg {
 		markers, err := api.GetReadMarkers(memberID)
 		if err != nil {
@@ -71,10 +71,16 @@ func loadReadMarkers(api *API, memberID string, rooms []Room) tea.Cmd {
 		for _, marker := range markers {
 			markerMap[marker.Room] = marker.LastRead
 		}
+		return readMarkersLoadedMsg{markers: markerMap}
+	}
+}
+
+func loadLatestMsgs(api *API, rooms []Room) tea.Cmd {
+	return func() tea.Msg {
 		latest, err := api.LatestMessagePerRoom(rooms)
 		if err != nil {
 			return errMsg{err}
 		}
-		return readMarkersLoadedMsg{markers: markerMap, latest: latest}
+		return latestMsgsLoadedMsg{latest: latest}
 	}
 }
