@@ -200,8 +200,6 @@ func printToken(app *pocketbase.PocketBase, handle string) {
 func seedDefaults(app *pocketbase.PocketBase) {
 	createUser(app, "claude", "Claude", true)
 	createUser(app, "github", "GitHub", true)
-	createUser(app, "eddie", "Eddie", false)
-	createUser(app, "milind", "Milind", false)
 	createRoom(app, "general", "General discussion")
 	createRoom(app, "claude", "Claude activity stream")
 	createRoom(app, "errors", "Bridge errors and alerts")

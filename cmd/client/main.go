@@ -253,15 +253,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case readMarkersLoadedMsg:
+		// Current room's read marker is managed locally in messagesLoadedMsg.
+		// Server value may lag (async SetReadMarker), so skip it here.
+		currentRoomID := ""
+		if len(m.rooms) > 0 {
+			currentRoomID = m.rooms[m.roomIdx].ID
+		}
 		for roomID, serverRead := range msg.markers {
-			if local, ok := m.readMarkers[roomID]; !ok || local < serverRead {
+			if roomID != currentRoomID {
 				m.readMarkers[roomID] = serverRead
 			}
 		}
 		for roomID, serverLatest := range msg.latest {
-			if local, ok := m.latestMsgs[roomID]; !ok || local < serverLatest {
-				m.latestMsgs[roomID] = serverLatest
-			}
+			m.latestMsgs[roomID] = serverLatest
 		}
 		return m, nil
 

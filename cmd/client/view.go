@@ -23,8 +23,7 @@ var (
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("12"))
 
-	authorStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("6"))
-	botStyle         = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("5"))
+	botStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("5"))
 	titleStyle       = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Padding(0, 1)
 	editBarStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true)
 	threadBadgeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("4")).Italic(true)
@@ -117,6 +116,20 @@ func (m model) viewRooms() string {
 	return strings.Join(lines, "\n")
 }
 
+// 12 distinct colors that look good on dark and light terminals
+var nameColors = []string{
+	"1", "2", "3", "4", "6", "9", "10", "11", "12", "13", "14", "208",
+}
+
+func handleColor(handle string) lipgloss.Style {
+	var h uint
+	for _, c := range handle {
+		h = h*31 + uint(c)
+	}
+	color := nameColors[h%uint(len(nameColors))]
+	return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(color))
+}
+
 func isPendingDots(body string) bool {
 	return body == "." || body == ".." || body == "..."
 }
@@ -143,7 +156,7 @@ func (m model) renderMessages() string {
 
 		ts := formatTimestamp(msg.Created)
 
-		nameRendered := authorStyle.Render(handle)
+		nameRendered := handleColor(handle).Render(handle)
 		if isBot {
 			nameRendered = botStyle.Render(handle)
 		}
