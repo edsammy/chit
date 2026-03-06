@@ -345,8 +345,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case sseEvent:
 		if len(m.rooms) > 0 {
-			m.msgIdx = -1
-			m.confirmDelete = false
 			return m, tea.Batch(
 				loadMessages(m.api, m.rooms[m.roomIdx].ID),
 				loadReadMarkers(m.api, m.me.ID, m.rooms),
