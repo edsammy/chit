@@ -30,14 +30,13 @@ cross-all: cross
 	mkdir -p dist
 	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-server ./cmd/server/
 	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-bridge ./cmd/bridge/
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/seed ./cmd/seed/
 
 deploy: build cross
 	sudo systemctl restart chit-server chit-bridge
 
 deploy-remote: cross-all
 	ssh $(VPS) "sudo systemctl stop chit-server chit-bridge"
-	scp dist/chit-server dist/chit-bridge dist/seed $(VPS):$(VPS_DIR)/bin/
+	scp dist/chit-server dist/chit-bridge $(VPS):$(VPS_DIR)/bin/
 	scp dist/chit-darwin-* dist/chit-linux-* $(VPS):$(VPS_DIR)/dist/
 	ssh $(VPS) "sudo systemctl start chit-server chit-bridge"
 
