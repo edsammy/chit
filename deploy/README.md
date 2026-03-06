@@ -3,91 +3,79 @@
 ## Prerequisites
 
 - A VPS with Ubuntu/Debian
-- A domain pointing at the VPS IP (e.g. `chat.yourteam.com`)
-- SSH access to the VPS
-- Go installed locally (for cross-compiling)
+- A domain pointing at the VPS IP
+- SSH access as root
 
-## 1. VPS setup
+## Setup
 
 SSH into the VPS as root:
 
 ```bash
-# Create chit user and directory
+# Create chit user
 useradd -r -s /bin/false chit
 mkdir -p /opt/chit
 chown chit:chit /opt/chit
 
-# Install Caddy
-apt install -y debian-keyring debian-archive-keyring apt-transport-https
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
-apt update && apt install caddy
-
-# Install Claude CLI (for the bridge)
-curl -fsSL https://claude.ai/install.sh | bash
-```
-
-## 2. Deploy
-
-From your local machine:
-
-```bash
-./deploy/deploy.sh root@your-vps-ip
-```
-
-This cross-compiles, uploads binaries, installs systemd units, and restarts services.
-The first run will fail on restart (nothing seeded yet) — that's fine.
-
-## 3. First run
-
-SSH into the VPS as root:
-
-```bash
+# Clone the repo
+sudo -u chit git clone https://github.com/edsammy/chit.git /opt/chit
 cd /opt/chit
 
-# Seed the database
+# Run setup (installs Go, Caddy, Claude CLI, builds, installs systemd units)
+bash deploy/setup.sh
+```
+
+## First run
+
+After setup prints next steps:
+
+```bash
+# Seed the database (prints bot token)
 sudo -u chit bin/seed defaults
 
-# Create .bridge.env with the claude bot token from seed output
+# Create .bridge.env with the bot token
 sudo -u chit cp .bridge.env.example .bridge.env
-sudo -u chit vi .bridge.env  # paste the token
+sudo -u chit vi .bridge.env
 
-# Generate invite codes for your team
-sudo -u chit bin/seed invite 5
+# Generate invite codes
+sudo -u chit bin/seed invite 2
 
-# Set up Caddy (edit domain in Caddyfile first)
-vi /opt/chit/deploy/Caddyfile
-cp /opt/chit/deploy/Caddyfile /etc/caddy/Caddyfile
+# Set up Caddy with your domain
+vi deploy/Caddyfile
+cp deploy/Caddyfile /etc/caddy/Caddyfile
 systemctl restart caddy
 
-# Start everything
+# Start services
 systemctl enable --now chit-server chit-bridge
 ```
 
 ## Connect
 
-On your local machine:
+Install the client:
 
 ```bash
-CHIT_SERVER=https://chat.yourteam.com bin/chit
+curl -fsSL https://yourdomain.com/install.sh | sh
+CHIT_SERVER=https://yourdomain.com chit
 ```
 
-Enter your invite code when prompted. Token is saved to `~/.config/chit/token`.
-
-Or install from the server:
+Or build locally from the repo:
 
 ```bash
-curl -fsSL https://chat.yourteam.com/install.sh | sh
-CHIT_SERVER=https://chat.yourteam.com chit
+make client
+CHIT_SERVER=https://yourdomain.com bin/chit
 ```
 
 ## Updating
 
-From your local machine:
+On the VPS:
 
 ```bash
-./deploy/deploy.sh root@your-vps-ip
+cd /opt/chit
+git pull
+make build
+systemctl restart chit-server chit-bridge
 ```
+
+Or just tell Claude in #claude to pull and rebuild.
 
 ## Logs
 

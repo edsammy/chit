@@ -35,8 +35,8 @@ seed-defaults:
 invite:
 	bin/seed invite
 
-deploy:
-	./deploy/deploy.sh $(HOST)
+setup:
+	bash deploy/setup.sh
 
 clean:
 	rm -rf bin/ dist/
