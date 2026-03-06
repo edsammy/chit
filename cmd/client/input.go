@@ -21,6 +21,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.roomIdx = (m.roomIdx + 1) % len(m.rooms)
 		m.msgIdx = -1
 		m.confirmDelete = false
+		m.snapToBottom = true
 		return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
 	}
 
@@ -159,6 +160,7 @@ func (m model) handleRoomNav(key string) (tea.Model, tea.Cmd) {
 			m.roomIdx++
 			m.msgIdx = -1
 			m.confirmDelete = false
+			m.snapToBottom = true
 			return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
 		}
 	case "up":
@@ -166,6 +168,7 @@ func (m model) handleRoomNav(key string) (tea.Model, tea.Cmd) {
 			m.roomIdx--
 			m.msgIdx = -1
 			m.confirmDelete = false
+			m.snapToBottom = true
 			return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
 		}
 	case "enter", "shift+right":

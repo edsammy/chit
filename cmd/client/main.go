@@ -167,8 +167,9 @@ type model struct {
 	localReadMarkers map[string]string // set locally, may not be on server yet
 	latestMsgs       map[string]string
 
-	dotCount  int
-	dotActive bool
+	snapToBottom bool
+	dotCount     int
+	dotActive    bool
 }
 
 func (m *model) clearInput() {
@@ -222,8 +223,9 @@ func (m *model) refreshViewport() {
 	}
 	if m.msgIdx >= 0 && m.msgIdx < len(m.msgLines) {
 		m.scrollToMsg(m.msgIdx)
-	} else if atBottom {
+	} else if atBottom || m.snapToBottom {
 		m.viewport.GotoBottom()
+		m.snapToBottom = false
 	}
 }
 
@@ -343,6 +345,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case sseEvent:
 		if len(m.rooms) > 0 {
+			m.msgIdx = -1
+			m.confirmDelete = false
 			return m, tea.Batch(
 				loadMessages(m.api, m.rooms[m.roomIdx].ID),
 				loadReadMarkers(m.api, m.me.ID, m.rooms),
