@@ -16,7 +16,10 @@ import (
 var version = "dev"
 
 func main() {
-	server := envOr("CHIT_SERVER", "http://127.0.0.1:8090")
+	server := envOr("CHIT_SERVER", loadConfig("server"))
+	if server == "" {
+		server = "http://127.0.0.1:8090"
+	}
 	token := envOr("CHIT_TOKEN", "")
 
 	if token == "" {
@@ -30,6 +33,7 @@ func main() {
 			log.Fatalf("claim failed: %v", err)
 		}
 		saveToken(token)
+		saveConfig("server", server)
 	}
 
 	api := NewAPI(server, token)
@@ -75,23 +79,31 @@ func claimFlow(server string) (string, error) {
 	return token, nil
 }
 
-func tokenPath() string {
+func configDir() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config", "chit", "token")
+	return filepath.Join(home, ".config", "chit")
 }
 
 func loadToken() string {
-	data, err := os.ReadFile(tokenPath())
+	return loadConfig("token")
+}
+
+func saveToken(token string) {
+	saveConfig("token", token)
+}
+
+func loadConfig(name string) string {
+	data, err := os.ReadFile(filepath.Join(configDir(), name))
 	if err != nil {
 		return ""
 	}
 	return strings.TrimSpace(string(data))
 }
 
-func saveToken(token string) {
-	path := tokenPath()
-	os.MkdirAll(filepath.Dir(path), 0700)
-	os.WriteFile(path, []byte(token+"\n"), 0600)
+func saveConfig(name, value string) {
+	dir := configDir()
+	os.MkdirAll(dir, 0700)
+	os.WriteFile(filepath.Join(dir, name), []byte(value+"\n"), 0600)
 }
 
 func envOr(key, def string) string {
