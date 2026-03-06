@@ -192,6 +192,9 @@ func (m *model) renderMessages() string {
 		}
 
 		header := nameRendered + " " + timeStyle.Render(ts)
+		if !isBot && msg.Updated != "" && msg.Updated != msg.Created {
+			header += " " + lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render("(edited)")
+		}
 		if modelTag != "" {
 			header += " " + modelStyle.Render("["+modelTag+"]")
 		}

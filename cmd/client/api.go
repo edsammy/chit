@@ -43,6 +43,7 @@ type Message struct {
 	Body    string `json:"body"`
 	Parent  string `json:"parent"`
 	Created string `json:"created"`
+	Updated string `json:"updated"`
 
 	Expand struct {
 		Author *Member `json:"author"`

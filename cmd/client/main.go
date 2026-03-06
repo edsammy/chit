@@ -211,27 +211,30 @@ func (m *model) resizeViewport() {
 
 func (m *model) refreshViewport() {
 	atBottom := m.viewport.AtBottom()
+	prevOffset := m.viewport.YOffset
 	content := m.renderMessages()
 	m.viewport.SetContent(content)
+	if m.msgIdx >= 0 {
+		m.viewport.SetYOffset(prevOffset)
+	}
 	if m.msgIdx >= 0 && m.msgIdx < len(m.msgLines) {
-		lineStart := m.msgLines[m.msgIdx]
-		// find end of this message (start of next, or end of content)
-		lineEnd := lineStart
-		if m.msgIdx+1 < len(m.msgLines) {
-			lineEnd = m.msgLines[m.msgIdx+1] - 1
-		} else {
-			lineEnd = strings.Count(content, "\n")
-		}
-		vpHeight := m.viewport.Height
-		yOffset := m.viewport.YOffset
-		if lineStart < yOffset {
-			m.viewport.SetYOffset(lineStart)
-		} else if lineEnd >= yOffset+vpHeight {
-			m.viewport.SetYOffset(lineEnd - vpHeight + 1)
-		}
+		m.scrollToMsg(m.msgIdx)
 	} else if atBottom {
 		m.viewport.GotoBottom()
 	}
+}
+
+func (m *model) scrollToMsg(idx int) {
+	if idx < 0 || idx >= len(m.msgLines) {
+		return
+	}
+	line := m.msgLines[idx]
+	// put selected message in the top third of viewport
+	target := line - m.viewport.Height/3
+	if target < 0 {
+		target = 0
+	}
+	m.viewport.SetYOffset(target)
 }
 
 func dotTick() tea.Cmd {

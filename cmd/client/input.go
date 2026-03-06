@@ -32,13 +32,13 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.msgIdx >= 0 {
-		return m.handleMsgSelection(key)
+		return m.handleMsgSelection(msg, key)
 	}
 
 	return m.handleTextInput(msg, key)
 }
 
-func (m model) handleMsgSelection(key string) (tea.Model, tea.Cmd) {
+func (m model) handleMsgSelection(msg tea.KeyMsg, key string) (tea.Model, tea.Cmd) {
 	if m.confirmDelete {
 		if key == "y" {
 			id := m.display[m.msgIdx].msg.ID
@@ -51,12 +51,12 @@ func (m model) handleMsgSelection(key string) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	switch key {
-	case "shift+up", "up":
+	case "shift+up":
 		if m.msgIdx > 0 {
 			m.msgIdx--
 			m.refreshViewport()
 		}
-	case "shift+down", "down":
+	case "shift+down":
 		if m.msgIdx < len(m.display)-1 {
 			m.msgIdx++
 			m.refreshViewport()
@@ -64,6 +64,10 @@ func (m model) handleMsgSelection(key string) (tea.Model, tea.Cmd) {
 			m.msgIdx = -1
 			m.refreshViewport()
 		}
+	case "up", "down":
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		return m, cmd
 	case "enter", "t":
 		if m.msgIdx < len(m.display) {
 			dm := m.display[m.msgIdx]
@@ -107,7 +111,14 @@ func (m model) handleMsgSelection(key string) (tea.Model, tea.Cmd) {
 		}
 	case "esc":
 		m.msgIdx = -1
+		m.viewport.GotoBottom()
 		m.refreshViewport()
+	default:
+		// any other key exits selection and goes back to input
+		m.msgIdx = -1
+		m.viewport.GotoBottom()
+		m.refreshViewport()
+		return m.handleTextInput(msg, key)
 	}
 	return m, nil
 }
