@@ -79,7 +79,13 @@ func (a *API) ListRooms() ([]Room, error) {
 	if err := a.get("/api/collections/rooms/records?sort=created", &resp); err != nil {
 		return nil, err
 	}
-	return resp.Items, nil
+	var rooms []Room
+	for _, r := range resp.Items {
+		if r.Name != "errors" {
+			rooms = append(rooms, r)
+		}
+	}
+	return rooms, nil
 }
 
 func (a *API) ListMessages(roomID string) ([]Message, error) {

@@ -242,6 +242,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case roomsLoadedMsg:
+		m.err = nil
 		m.rooms = msg.rooms
 		if len(m.rooms) > 0 {
 			return m, tea.Batch(

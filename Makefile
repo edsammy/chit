@@ -1,7 +1,7 @@
 VERSION := $(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 
-.PHONY: build client server seed bridge run run-server run-client run-bridge clean
+.PHONY: build client server seed bridge cross deploy run run-server run-client run-bridge clean
 
 build: client server seed bridge
 
@@ -16,6 +16,15 @@ seed:
 
 bridge:
 	go build $(LDFLAGS) -o bin/chit-bridge ./cmd/bridge/
+
+cross:
+	mkdir -p dist
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/chit-darwin-arm64 ./cmd/client/
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-darwin-amd64 ./cmd/client/
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-linux-amd64 ./cmd/client/
+
+deploy: build cross
+	sudo systemctl restart chit-server chit-bridge
 
 run: run-server
 
