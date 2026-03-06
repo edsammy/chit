@@ -18,12 +18,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if key == "shift+tab" && len(m.rooms) > 1 {
-		for range m.rooms {
-			m.roomIdx = (m.roomIdx + 1) % len(m.rooms)
-			if m.rooms[m.roomIdx].Name != "errors" {
-				break
-			}
-		}
+		m.roomIdx = (m.roomIdx + 1) % len(m.rooms)
 		return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
 	}
 
@@ -51,18 +46,14 @@ func (m model) handleEsc() (tea.Model, tea.Cmd) {
 func (m model) handleRoomNav(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "down":
-		for i := m.roomIdx + 1; i < len(m.rooms); i++ {
-			if m.rooms[i].Name != "errors" {
-				m.roomIdx = i
-				return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
-			}
+		if m.roomIdx < len(m.rooms)-1 {
+			m.roomIdx++
+			return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
 		}
 	case "up":
-		for i := m.roomIdx - 1; i >= 0; i-- {
-			if m.rooms[i].Name != "errors" {
-				m.roomIdx = i
-				return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
-			}
+		if m.roomIdx > 0 {
+			m.roomIdx--
+			return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
 		}
 	case "enter":
 		m.focusRooms = false

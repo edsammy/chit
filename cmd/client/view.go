@@ -93,9 +93,6 @@ func (m model) viewRooms() string {
 	lines = append(lines, header, "")
 
 	for i, room := range m.rooms {
-		if room.Name == "errors" {
-			continue
-		}
 		name := "#" + room.Name
 		marker := "  "
 
@@ -115,15 +112,6 @@ func (m model) viewRooms() string {
 			name = roomInactiveStyle.Render(marker + name)
 		}
 		lines = append(lines, name)
-	}
-
-	if errID := m.errorsRoomID(); errID != "" {
-		lastRead := m.readMarkers[errID]
-		latest := m.latestMsgs[errID]
-		if latest != "" && latest != lastRead {
-			warn := lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Bold(true).Render("⚠ errors")
-			lines = append(lines, "", warn)
-		}
 	}
 
 	return strings.Join(lines, "\n")

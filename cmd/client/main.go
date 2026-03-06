@@ -168,15 +168,6 @@ func (m *model) clearInput() {
 	m.cursor = 0
 }
 
-func (m model) errorsRoomID() string {
-	for _, room := range m.rooms {
-		if room.Name == "errors" {
-			return room.ID
-		}
-	}
-	return ""
-}
-
 func initialModel(api *API, me *Member) model {
 	return model{
 		api:         api,
