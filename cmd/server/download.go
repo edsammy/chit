@@ -59,23 +59,22 @@ esac
 
 PLATFORM="${OS}-${ARCH}"
 URL="%s/download/${PLATFORM}"
+INSTALL_DIR="$HOME/.local/bin"
 
-INSTALL_DIR="/usr/local/bin"
-TMP=$(mktemp)
+mkdir -p "$INSTALL_DIR"
 
 echo "Downloading chit (${PLATFORM})..."
-curl -fSL -o "$TMP" "$URL"
-chmod +x "$TMP"
-
-if [ -w "$INSTALL_DIR" ]; then
-    mv "$TMP" "$INSTALL_DIR/chit"
-else
-    sudo mv "$TMP" "$INSTALL_DIR/chit"
-fi
+curl -fSL -o "$INSTALL_DIR/chit" "$URL"
+chmod +x "$INSTALL_DIR/chit"
 
 echo "Installed chit to $INSTALL_DIR/chit"
-echo "Run: CHIT_SERVER=%s chit"
-`, base, base)
+
+# Check if it's in PATH
+case ":$PATH:" in
+    *":$INSTALL_DIR:"*) ;;
+    *) echo "Add to your PATH: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
+esac
+`, base)
 
 		e.Response.Header().Set("Content-Type", "text/plain")
 		fmt.Fprint(e.Response, script)
