@@ -40,7 +40,7 @@ func main() {
 	}
 
 	m := initialModel(api, me)
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithoutBracketedPaste())
 
 	subscribeSSE(server, token, p)
 
@@ -127,6 +127,7 @@ type readMarkersLoadedMsg struct {
 	latest  map[string]string
 }
 type errMsg struct{ err error }
+type errClearMsg struct{}
 type dotTickMsg struct{}
 
 
@@ -340,9 +341,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case errClearMsg:
+		m.err = nil
+		return m, nil
+
 	case errMsg:
 		m.err = msg.err
-		return m, nil
+		return m, tea.Tick(3*time.Second, func(time.Time) tea.Msg {
+			return errClearMsg{}
+		})
 	}
 
 	return m, nil
