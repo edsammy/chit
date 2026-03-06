@@ -7,47 +7,45 @@
 - SSH access to the VPS
 - Go installed locally (for cross-compiling)
 
-## First-time VPS setup
+## 1. VPS setup
 
-SSH into the VPS and run:
+SSH into the VPS as root:
 
 ```bash
 # Create chit user and directory
-sudo useradd -r -s /bin/false chit
-sudo mkdir -p /opt/chit
-sudo chown chit:chit /opt/chit
+useradd -r -s /bin/false chit
+mkdir -p /opt/chit
+chown chit:chit /opt/chit
 
 # Install Caddy
-sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-sudo apt update && sudo apt install caddy
-
-# Install Caddyfile (edit domain first)
-sudo cp /opt/chit/deploy/Caddyfile /etc/caddy/Caddyfile
-sudo systemctl restart caddy
+apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+apt update && apt install caddy
 
 # Install Claude CLI (for the bridge)
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
-## Deploy
+## 2. Deploy
 
 From your local machine:
 
 ```bash
-./deploy/deploy.sh user@your-vps-ip
+./deploy/deploy.sh root@your-vps-ip
 ```
 
 This cross-compiles, uploads binaries, installs systemd units, and restarts services.
+The first run will fail on restart (nothing seeded yet) — that's fine.
 
-## First run after deploy
+## 3. First run
 
-SSH into the VPS:
+SSH into the VPS as root:
 
 ```bash
-# Seed the database
 cd /opt/chit
+
+# Seed the database
 sudo -u chit bin/seed defaults
 
 # Create .bridge.env with the claude bot token from seed output
@@ -57,11 +55,13 @@ sudo -u chit vi .bridge.env  # paste the token
 # Generate invite codes for your team
 sudo -u chit bin/seed invite 5
 
-# Enable services to start on boot
-sudo systemctl enable chit-server chit-bridge
+# Set up Caddy (edit domain in Caddyfile first)
+vi /opt/chit/deploy/Caddyfile
+cp /opt/chit/deploy/Caddyfile /etc/caddy/Caddyfile
+systemctl restart caddy
 
 # Start everything
-sudo systemctl start chit-server chit-bridge
+systemctl enable --now chit-server chit-bridge
 ```
 
 ## Connect
@@ -69,22 +69,29 @@ sudo systemctl start chit-server chit-bridge
 On your local machine:
 
 ```bash
-CHIT_SERVER=https://chat.yourteam.com ./bin/chit
+CHIT_SERVER=https://chat.yourteam.com bin/chit
 ```
 
 Enter your invite code when prompted. Token is saved to `~/.config/chit/token`.
 
-## Updating
-
-After making changes locally:
+Or install from the server:
 
 ```bash
-./deploy/deploy.sh user@your-vps-ip
+curl -fsSL https://chat.yourteam.com/install.sh | sh
+CHIT_SERVER=https://chat.yourteam.com chit
+```
+
+## Updating
+
+From your local machine:
+
+```bash
+./deploy/deploy.sh root@your-vps-ip
 ```
 
 ## Logs
 
 ```bash
-sudo journalctl -u chit-server -f
-sudo journalctl -u chit-bridge -f
+journalctl -u chit-server -f
+journalctl -u chit-bridge -f
 ```
