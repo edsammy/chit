@@ -29,9 +29,9 @@ deploy:
 	nice -n 19 go build $(LDFLAGS) -o bin/chit-bridge ./cmd/bridge/
 	nice -n 19 go build $(LDFLAGS) -o bin/seed ./cmd/seed/
 	mkdir -p dist
-	nice -n 19 go build $(LDFLAGS) -o dist/chit-darwin-arm64 ./cmd/client/
-	nice -n 19 go build $(LDFLAGS) -o dist/chit-darwin-amd64 ./cmd/client/
-	nice -n 19 go build $(LDFLAGS) -o dist/chit-linux-amd64 ./cmd/client/
+	nice -n 19 env GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/chit-darwin-arm64 ./cmd/client/
+	nice -n 19 env GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-darwin-amd64 ./cmd/client/
+	nice -n 19 env GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-linux-amd64 ./cmd/client/
 	sudo systemctl start chit-server chit-bridge
 
 run: run-server
