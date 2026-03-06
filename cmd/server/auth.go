@@ -95,7 +95,11 @@ func registerAuth(se *core.ServeEvent, app *pocketbase.PocketBase) {
 		if strings.HasPrefix(path, "/api/realtime") {
 			return e.Next()
 		}
-		if strings.HasPrefix(path, "/api/admins") || strings.HasPrefix(path, "/api/settings") {
+		// PocketBase admin dashboard: skip for superuser auth and logged-in superusers
+		if strings.Contains(path, "_superusers") {
+			return e.Next()
+		}
+		if e.Auth != nil && e.Auth.IsSuperuser() {
 			return e.Next()
 		}
 		// /download/ and /install.sh skip auth via the /api/ prefix check above
