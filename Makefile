@@ -24,15 +24,20 @@ cross:
 	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-linux-amd64 ./cmd/client/
 
 deploy:
-	sudo systemctl stop chit-server chit-bridge
-	nice -n 19 go build $(LDFLAGS) -o bin/chit-server ./cmd/server/
-	nice -n 19 go build $(LDFLAGS) -o bin/chit-bridge ./cmd/bridge/
+	@echo "Building (services stay running)..."
+	nice -n 19 go build $(LDFLAGS) -o bin/chit-server.new ./cmd/server/
+	nice -n 19 go build $(LDFLAGS) -o bin/chit-bridge.new ./cmd/bridge/
 	nice -n 19 go build $(LDFLAGS) -o bin/seed ./cmd/seed/
 	mkdir -p dist
 	nice -n 19 env GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/chit-darwin-arm64 ./cmd/client/
 	nice -n 19 env GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-darwin-amd64 ./cmd/client/
 	nice -n 19 env GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-linux-amd64 ./cmd/client/
+	@echo "Swapping binaries..."
+	sudo systemctl stop chit-server chit-bridge
+	mv bin/chit-server.new bin/chit-server
+	mv bin/chit-bridge.new bin/chit-bridge
 	sudo systemctl start chit-server chit-bridge
+	@echo "Deploy complete"
 
 run: run-server
 
