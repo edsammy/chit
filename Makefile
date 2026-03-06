@@ -35,6 +35,8 @@ deploy:
 	@echo "Swapping and restarting..."
 	mv bin/chit-server.new bin/chit-server
 	mv bin/chit-bridge.new bin/chit-bridge
+	sudo cp deploy/chit-server.service deploy/chit-bridge.service /etc/systemd/system/
+	sudo systemctl daemon-reload
 	sudo systemctl restart chit-server chit-bridge
 	@echo "Deploy complete"
 
