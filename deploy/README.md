@@ -28,7 +28,7 @@ sudo cp /opt/chit/deploy/Caddyfile /etc/caddy/Caddyfile
 sudo systemctl restart caddy
 
 # Install Claude CLI (for the bridge)
-# See: https://docs.anthropic.com/en/docs/claude-code
+curl -fsSL https://claude.ai/install.sh | bash
 ```
 
 ## Deploy
