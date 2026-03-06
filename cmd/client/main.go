@@ -17,23 +17,20 @@ var version = "dev"
 
 func main() {
 	server := envOr("CHIT_SERVER", loadConfig("server"))
-	if server == "" {
-		server = "http://127.0.0.1:8090"
-	}
-	token := envOr("CHIT_TOKEN", "")
-
-	if token == "" {
-		token = loadToken()
-	}
+	token := envOr("CHIT_TOKEN", loadToken())
 
 	if token == "" {
 		var err error
-		token, err = claimFlow(server)
+		server, token, err = claimFlow(server)
 		if err != nil {
 			log.Fatalf("claim failed: %v", err)
 		}
-		saveToken(token)
 		saveConfig("server", server)
+		saveToken(token)
+	}
+
+	if server == "" {
+		server = "http://127.0.0.1:8090"
 	}
 
 	api := NewAPI(server, token)
@@ -52,10 +49,16 @@ func main() {
 	}
 }
 
-func claimFlow(server string) (string, error) {
+func claimFlow(server string) (string, string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to chit! Enter your invite code to get started.")
 	fmt.Println()
+
+	if server == "" {
+		fmt.Print("Server: ")
+		s, _ := reader.ReadString('\n')
+		server = strings.TrimSpace(s)
+	}
 
 	fmt.Print("Invite code: ")
 	code, _ := reader.ReadString('\n')
@@ -72,11 +75,11 @@ func claimFlow(server string) (string, error) {
 	api := NewAPI(server, "")
 	token, member, err := api.ClaimInvite(code, handle, name)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	fmt.Printf("\nWelcome, %s! You're in.\n", member.Handle)
-	return token, nil
+	return server, token, nil
 }
 
 func configDir() string {
