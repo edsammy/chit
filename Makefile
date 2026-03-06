@@ -36,9 +36,10 @@ deploy: build cross
 	sudo systemctl restart chit-server chit-bridge
 
 deploy-remote: cross-all
+	ssh $(VPS) "sudo systemctl stop chit-server chit-bridge"
 	scp dist/chit-server dist/chit-bridge dist/seed $(VPS):$(VPS_DIR)/bin/
 	scp dist/chit-darwin-* dist/chit-linux-* $(VPS):$(VPS_DIR)/dist/
-	ssh $(VPS) "sudo systemctl restart chit-server chit-bridge"
+	ssh $(VPS) "sudo systemctl start chit-server chit-bridge"
 
 run: run-server
 
