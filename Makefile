@@ -37,7 +37,8 @@ deploy:
 	mv bin/chit-bridge.new bin/chit-bridge
 	sudo cp deploy/chit-server.service deploy/chit-bridge.service /etc/systemd/system/
 	sudo systemctl daemon-reload
-	sudo systemctl restart chit-server chit-bridge
+	sudo systemctl restart chit-server
+	sudo systemctl restart chit-bridge
 	@echo "Deploy complete"
 
 run: run-server
