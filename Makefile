@@ -32,11 +32,10 @@ deploy:
 	nice -n 19 env GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/chit-darwin-arm64 ./cmd/client/
 	nice -n 19 env GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-darwin-amd64 ./cmd/client/
 	nice -n 19 env GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-linux-amd64 ./cmd/client/
-	@echo "Swapping binaries..."
-	sudo systemctl stop chit-server chit-bridge
+	@echo "Swapping and restarting..."
 	mv bin/chit-server.new bin/chit-server
 	mv bin/chit-bridge.new bin/chit-bridge
-	sudo systemctl start chit-server chit-bridge
+	sudo systemctl restart chit-server chit-bridge
 	@echo "Deploy complete"
 
 run: run-server
