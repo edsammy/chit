@@ -71,10 +71,15 @@ Your laptop                          VPS
 
 | Key | Action |
 |---|---|
-| `Enter` | Send message / enter room |
+| `Enter` | Send message / enter room / open thread |
 | `Shift+Tab` | Next room |
-| `Up/Down` | Navigate rooms (sidebar) / scroll messages (chat) |
-| `Esc` | Switch to sidebar |
+| `Shift+Left/Right` | Enter/exit room navigation |
+| `Shift+Up/Down` | Select messages (enter selection mode) |
+| `Up/Down` | Scroll messages / navigate rooms |
+| `r` | Reply to selected message |
+| `e` | Edit selected message (own only) |
+| `d` | Delete selected message (own only, confirms) |
+| `Esc` | Cancel (selection/edit/reply/thread), jump to bottom |
 | `Ctrl+C` | Clear input |
 | `Ctrl+Q` | Quit |
 | `Ctrl+A/E` | Jump to start/end of input |
