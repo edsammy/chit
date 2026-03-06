@@ -1,7 +1,10 @@
 VERSION := $(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags "-X main.version=$(VERSION)"
 
-.PHONY: build client server seed bridge cross deploy run run-server run-client run-bridge clean
+VPS := chit@chit.nance.app
+VPS_DIR := /opt/chit
+
+.PHONY: build client server seed bridge cross cross-all deploy deploy-remote run run-server run-client run-bridge clean
 
 build: client server seed bridge
 
@@ -23,8 +26,19 @@ cross:
 	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-darwin-amd64 ./cmd/client/
 	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-linux-amd64 ./cmd/client/
 
+cross-all: cross
+	mkdir -p dist
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-server ./cmd/server/
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/chit-bridge ./cmd/bridge/
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/seed ./cmd/seed/
+
 deploy: build cross
 	sudo systemctl restart chit-server chit-bridge
+
+deploy-remote: cross-all
+	scp dist/chit-server dist/chit-bridge dist/seed $(VPS):$(VPS_DIR)/bin/
+	scp dist/chit-darwin-* dist/chit-linux-* $(VPS):$(VPS_DIR)/dist/
+	ssh $(VPS) "sudo systemctl restart chit-server chit-bridge"
 
 run: run-server
 
