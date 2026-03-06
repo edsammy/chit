@@ -30,7 +30,8 @@ var (
 	hintStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 	timeStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 	modelStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
-	selectBarStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+	selectBarStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+	thinkingStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Italic(true)
 
 	msgBorderStyle = lipgloss.NewStyle().
 			Padding(0, 1).
@@ -180,23 +181,18 @@ func (m *model) renderMessages() string {
 		}
 
 		body := msg.Body
-		var modelTag string
-		if isBot && strings.HasPrefix(body, "[") {
-			if nl := strings.Index(body, "\n"); nl != -1 {
-				tag := body[:nl]
-				if strings.HasPrefix(tag, "[") && strings.HasSuffix(tag, "]") {
-					modelTag = tag[1 : len(tag)-1]
-					body = body[nl+1:]
-				}
-			}
-		}
 
-		header := nameRendered + " " + timeStyle.Render(ts)
+		header := nameRendered + " "
+		if isBot && isPendingDots(msg.Body) {
+			header += thinkingStyle.Render("thinking" + strings.Repeat(".", m.dotCount))
+		} else {
+			header += timeStyle.Render(ts)
+		}
 		if !isBot && msg.Updated != "" && msg.Updated != msg.Created {
 			header += " " + lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render("(edited)")
 		}
-		if modelTag != "" {
-			header += " " + modelStyle.Render("["+modelTag+"]")
+		if msg.Model != "" {
+			header += " " + modelStyle.Render("["+msg.Model+"]")
 		}
 
 		wrapW := m.viewport.Width - 4
@@ -204,7 +200,7 @@ func (m *model) renderMessages() string {
 			body = wordWrap(body, wrapW)
 		}
 		if isBot && isPendingDots(msg.Body) {
-			body = strings.Repeat(".", m.dotCount)
+			body = ""
 		} else if isBot {
 			body = renderMarkdown(body)
 		}

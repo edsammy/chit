@@ -62,6 +62,7 @@ func ensureCollections(app *pocketbase.PocketBase) error {
 			name: "messages",
 			fields: []map[string]any{
 				{"name": "body", "type": "text", "required": true},
+				{"name": "model", "type": "text"},
 			},
 		},
 		{

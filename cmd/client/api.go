@@ -41,6 +41,7 @@ type Message struct {
 	Room    string `json:"room"`
 	Author  string `json:"author"`
 	Body    string `json:"body"`
+	Model   string `json:"model"`
 	Parent  string `json:"parent"`
 	Created string `json:"created"`
 	Updated string `json:"updated"`

@@ -111,11 +111,8 @@ func (h *ClaudeHandler) Handle(msg Message) {
 	h.sessions.m[threadKey] = newSessionID
 	h.sessions.Unlock()
 
-	if model != "" {
-		result = fmt.Sprintf("[%s]\n%s", shortModel(model), result)
-	}
-
-	if err := h.api.UpdateMessage(statusMsg.ID, result); err != nil {
+	modelName := shortModel(model)
+	if err := h.api.UpdateMessageFields(statusMsg.ID, result, modelName); err != nil {
 		log.Printf("patching final response for %s: %v", msg.ID, err)
 		return
 	}

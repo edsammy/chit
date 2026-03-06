@@ -145,7 +145,14 @@ func (a *API) SendMessage(roomID, authorID, body, parent string) (*Message, erro
 }
 
 func (a *API) UpdateMessage(id, body string) error {
+	return a.UpdateMessageFields(id, body, "")
+}
+
+func (a *API) UpdateMessageFields(id, body, model string) error {
 	payload := map[string]string{"body": body}
+	if model != "" {
+		payload["model"] = model
+	}
 	return a.patch("/api/collections/messages/records/"+id, payload)
 }
 

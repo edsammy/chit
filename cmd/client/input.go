@@ -19,6 +19,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if key == "shift+tab" && len(m.rooms) > 1 {
 		m.roomIdx = (m.roomIdx + 1) % len(m.rooms)
+		m.msgIdx = -1
+		m.confirmDelete = false
 		return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
 	}
 
@@ -155,11 +157,15 @@ func (m model) handleRoomNav(key string) (tea.Model, tea.Cmd) {
 	case "down":
 		if m.roomIdx < len(m.rooms)-1 {
 			m.roomIdx++
+			m.msgIdx = -1
+			m.confirmDelete = false
 			return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
 		}
 	case "up":
 		if m.roomIdx > 0 {
 			m.roomIdx--
+			m.msgIdx = -1
+			m.confirmDelete = false
 			return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
 		}
 	case "enter", "shift+right":
