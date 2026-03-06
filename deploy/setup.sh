@@ -13,10 +13,14 @@ fi
 
 echo "==> Creating chit user"
 if ! id chit &>/dev/null; then
-    useradd -r -s /bin/false chit
+    useradd -r -m -s /bin/bash chit
     echo "Created chit user"
 else
     echo "chit user already exists"
+    # Ensure shell and home are correct
+    usermod -s /bin/bash -d /home/chit chit
+    mkdir -p /home/chit
+    chown chit:chit /home/chit
 fi
 
 echo "==> Installing Go"
@@ -44,15 +48,35 @@ fi
 echo "==> Installing Claude CLI"
 if ! command -v claude &>/dev/null; then
     curl -fsSL https://claude.ai/install.sh | bash
+    # Make claude available to chit user
+    if [ -f /root/.local/bin/claude ]; then
+        ln -sf /root/.local/bin/claude /usr/local/bin/claude
+    fi
     echo "Installed Claude CLI"
 else
     echo "Claude CLI already installed: $(claude --version 2>&1 | head -1)"
 fi
 
+echo "==> Configuring git for chit user"
+sudo -u chit git config --global user.name "Claude (chit)"
+sudo -u chit git config --global user.email "claude@chit"
+sudo -u chit git config --global --add safe.directory /opt/chit
+
 echo "==> Building"
 mkdir -p "$CHIT_DIR/.cache"
 chown chit:chit "$CHIT_DIR/.cache"
 GOPATH="$CHIT_DIR/.cache/go" GOCACHE="$CHIT_DIR/.cache/go-build" make build
+
+echo "==> Cross-compiling client binaries for download"
+mkdir -p "$CHIT_DIR/dist"
+VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
+LDFLAGS="-X main.version=$VERSION"
+GOPATH="$CHIT_DIR/.cache/go" GOCACHE="$CHIT_DIR/.cache/go-build" \
+    GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/chit-darwin-arm64 ./cmd/client/
+GOPATH="$CHIT_DIR/.cache/go" GOCACHE="$CHIT_DIR/.cache/go-build" \
+    GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/chit-darwin-amd64 ./cmd/client/
+GOPATH="$CHIT_DIR/.cache/go" GOCACHE="$CHIT_DIR/.cache/go-build" \
+    GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/chit-linux-amd64 ./cmd/client/
 
 echo "==> Installing systemd units"
 cp deploy/chit-server.service deploy/chit-bridge.service /etc/systemd/system/
@@ -73,7 +97,7 @@ if [ ! -f "$CHIT_DIR/pb_data/data.db" ]; then
     echo ""
     echo "  2. Create .bridge.env with the bot token from seed output:"
     echo "     sudo -u chit cp .bridge.env.example .bridge.env"
-    echo "     sudo -u chit vi .bridge.env"
+    echo "     vi .bridge.env   # paste the claude bot token"
     echo ""
     echo "  3. Generate invite codes:"
     echo "     sudo -u chit bin/seed invite 2"

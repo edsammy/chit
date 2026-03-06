@@ -6,27 +6,36 @@
 - A domain pointing at the VPS IP
 - SSH access as root
 
-## Setup
+## Quick start
 
 SSH into the VPS as root:
 
 ```bash
-# Create chit user
-useradd -r -s /bin/false chit
-mkdir -p /opt/chit
-chown chit:chit /opt/chit
-
 # Clone the repo
-sudo -u chit git clone https://github.com/edsammy/chit.git /opt/chit
+mkdir -p /opt/chit
+git clone https://github.com/edsammy/chit.git /opt/chit
 cd /opt/chit
 
-# Run setup (installs Go, Caddy, Claude CLI, builds, installs systemd units)
+# Set up Claude CLI permissions (so it can run everything)
+mkdir -p ~/.claude
+cp deploy/claude-settings.json ~/.claude/settings.json
+
+# Run setup (creates chit user, installs Go/Caddy/Claude CLI, builds)
 bash deploy/setup.sh
+```
+
+Then follow the printed next steps, or let Claude handle it:
+
+```bash
+claude -p "Read deploy/README.md. Run the 'First run' steps. \
+  My domain is YOURDOMAIN.COM. \
+  After seeding, put the claude bot token in .bridge.env. \
+  Generate 2 invite codes and print them."
 ```
 
 ## First run
 
-After setup prints next steps:
+After setup.sh completes:
 
 ```bash
 # Seed the database (prints bot token)
@@ -34,7 +43,7 @@ sudo -u chit bin/seed defaults
 
 # Create .bridge.env with the bot token
 sudo -u chit cp .bridge.env.example .bridge.env
-sudo -u chit vi .bridge.env
+vi .bridge.env   # paste the claude bot token
 
 # Generate invite codes
 sudo -u chit bin/seed invite 2
@@ -54,7 +63,7 @@ Install the client:
 
 ```bash
 curl -fsSL https://yourdomain.com/install.sh | sh
-CHIT_SERVER=https://yourdomain.com chit
+chit
 ```
 
 Or build locally from the repo:
@@ -71,7 +80,7 @@ On the VPS:
 ```bash
 cd /opt/chit
 git pull
-make build
+bash deploy/setup.sh
 systemctl restart chit-server chit-bridge
 ```
 

@@ -7,6 +7,8 @@ Type=simple
 User=chit
 WorkingDirectory=/opt/chit
 EnvironmentFile=/opt/chit/.bridge.env
+Environment=HOME=/home/chit
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/home/chit/.local/bin
 ExecStart=/opt/chit/bin/chit-bridge
 Restart=always
 RestartSec=5
