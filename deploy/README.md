@@ -31,8 +31,11 @@ cd /opt/chit
 mkdir -p ~/.claude
 cp deploy/claude-settings.json ~/.claude/settings.json
 
-# Let Claude do everything
-claude -p "Read deploy/INSTALL.md and follow every step. My domain is YOURDOMAIN.COM. Print invite codes at the end."
+# Let Claude do everything (use interactive mode so you can watch)
+claude
+
+# Then paste:
+# Read deploy/INSTALL.md and follow every step. My domain is YOURDOMAIN.COM. Print invite codes at the end.
 ```
 
 ## Connect

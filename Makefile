@@ -35,8 +35,5 @@ seed-defaults:
 invite:
 	bin/seed invite
 
-setup:
-	bash deploy/setup.sh
-
 clean:
 	rm -rf bin/ dist/
