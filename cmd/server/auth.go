@@ -95,6 +95,9 @@ func registerAuth(se *core.ServeEvent, app *pocketbase.PocketBase) {
 		if strings.HasPrefix(path, "/api/realtime") {
 			return e.Next()
 		}
+		if strings.HasPrefix(path, "/api/admins") || strings.HasPrefix(path, "/api/settings") {
+			return e.Next()
+		}
 		// /download/ and /install.sh skip auth via the /api/ prefix check above
 
 		_, err := memberFromRequest(app, e)
