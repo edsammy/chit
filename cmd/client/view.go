@@ -30,6 +30,7 @@ var (
 	hintStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 	timeStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 	modelStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
+	selectBarStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 
 	msgBorderStyle = lipgloss.NewStyle().
 			Padding(0, 1).
@@ -76,8 +77,23 @@ func (m model) View() string {
 
 func (m model) viewInput() string {
 	inputW := m.width - 4
+	if m.msgIdx >= 0 {
+		var hint string
+		if m.confirmDelete {
+			hint = editBarStyle.Render("delete message? y/n")
+		} else {
+			hint = hintStyle.Render("enter: thread  r: reply  e: edit  d: delete  esc: cancel")
+		}
+		return inputStyle.Width(inputW).Render(hint)
+	}
 	prompt := "> "
-	if m.threadViewID != "" {
+	if m.editID != "" {
+		prompt = editBarStyle.Render("[editing] ") + "> "
+	} else if m.replyToID != "" && m.replyToHandle != "" {
+		prompt = editBarStyle.Render("[reply to @"+m.replyToHandle+"] ") + "> "
+	} else if m.replyToID != "" {
+		prompt = editBarStyle.Render("[reply] ") + "> "
+	} else if m.threadViewID != "" {
 		prompt = editBarStyle.Render("[thread] ") + "> "
 	}
 	before := m.input[:m.cursor]
@@ -134,18 +150,20 @@ func isPendingDots(body string) bool {
 	return body == "." || body == ".." || body == "..."
 }
 
-func (m model) renderMessages() string {
+func (m *model) renderMessages() string {
 	if len(m.display) == 0 {
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render("no messages yet")
 	}
 
 	var lines []string
+	m.msgLines = make([]int, len(m.display))
 
 	if m.threadViewID != "" {
 		lines = append(lines, hintStyle.Render("── thread (esc to go back) ──"), "")
 	}
 
-	for _, dm := range m.display {
+	for di, dm := range m.display {
+		m.msgLines[di] = len(lines)
 		msg := dm.msg
 		handle := msg.Author
 		isBot := false
@@ -193,6 +211,16 @@ func (m model) renderMessages() string {
 			bodyLines[j] = "  " + bodyLines[j]
 		}
 		body = strings.Join(bodyLines, "\n")
+
+		if di == m.msgIdx {
+			bar := selectBarStyle.Render("▎")
+			header = bar + header
+			bodyLines = strings.Split(body, "\n")
+			for j := range bodyLines {
+				bodyLines[j] = bar + bodyLines[j]
+			}
+			body = strings.Join(bodyLines, "\n")
+		}
 
 		lines = append(lines, header, body)
 

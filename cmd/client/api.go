@@ -243,3 +243,31 @@ func (a *API) patch(path string, payload any) error {
 	}
 	return nil
 }
+
+func (a *API) del(path string) error {
+	req, err := http.NewRequest("DELETE", a.base+path, nil)
+	if err != nil {
+		return err
+	}
+	if a.token != "" {
+		req.Header.Set("Authorization", "Bearer "+a.token)
+	}
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("DELETE %s: %d %s", path, resp.StatusCode, string(body))
+	}
+	return nil
+}
+
+func (a *API) EditMessage(id, body string) error {
+	return a.patch("/api/collections/messages/records/"+id, map[string]string{"body": body})
+}
+
+func (a *API) DeleteMessage(id string) error {
+	return a.del("/api/collections/messages/records/" + id)
+}

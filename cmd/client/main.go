@@ -154,7 +154,13 @@ type model struct {
 	viewport   viewport.Model
 	ready bool
 
-	threadViewID string
+	msgIdx        int // -1 = no selection
+	msgLines      []int // line offset of each display message
+	confirmDelete bool
+	replyToID     string
+	replyToHandle string
+	editID        string
+	threadViewID  string
 
 	readMarkers map[string]string
 	latestMsgs  map[string]string
@@ -172,6 +178,7 @@ func initialModel(api *API, me *Member) model {
 	return model{
 		api:         api,
 		me:          me,
+		msgIdx:      -1,
 		readMarkers: make(map[string]string),
 		latestMsgs:  make(map[string]string),
 		dotCount:    1,
@@ -206,7 +213,16 @@ func (m *model) refreshViewport() {
 	atBottom := m.viewport.AtBottom()
 	content := m.renderMessages()
 	m.viewport.SetContent(content)
-	if atBottom {
+	if m.msgIdx >= 0 && m.msgIdx < len(m.msgLines) {
+		line := m.msgLines[m.msgIdx]
+		vpHeight := m.viewport.Height
+		yOffset := m.viewport.YOffset
+		if line < yOffset {
+			m.viewport.SetYOffset(line)
+		} else if line >= yOffset+vpHeight {
+			m.viewport.SetYOffset(line - vpHeight + 1)
+		}
+	} else if atBottom {
 		m.viewport.GotoBottom()
 	}
 }

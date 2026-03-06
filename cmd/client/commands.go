@@ -43,6 +43,24 @@ func sendReply(api *API, roomID, authorID, body, parentID string) tea.Cmd {
 }
 
 
+func editMessage(api *API, id, body string) tea.Cmd {
+	return func() tea.Msg {
+		if err := api.EditMessage(id, body); err != nil {
+			return errMsg{err}
+		}
+		return messageSentMsg{}
+	}
+}
+
+func deleteMessage(api *API, id string) tea.Cmd {
+	return func() tea.Msg {
+		if err := api.DeleteMessage(id); err != nil {
+			return errMsg{err}
+		}
+		return messageSentMsg{}
+	}
+}
+
 func loadReadMarkers(api *API, memberID string, rooms []Room) tea.Cmd {
 	return func() tea.Msg {
 		markers, err := api.GetReadMarkers(memberID)

@@ -1,10 +1,10 @@
 # Binaries
 bin/
 dist/
-client
-server
-bridge
-seed
+/client
+/server
+/bridge
+/seed
 
 # PocketBase data
 pb_data/
