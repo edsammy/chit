@@ -14,6 +14,7 @@ SSH into the VPS as root:
 # Create chit user with sudo
 useradd -m -s /bin/bash chit
 echo "chit ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/chit
+echo "source ~/.bashrc" > /home/chit/.profile && chown chit:chit /home/chit/.profile
 mkdir -p /opt/chit && chown chit:chit /opt/chit
 
 # Switch to chit user
