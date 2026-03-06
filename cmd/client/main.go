@@ -13,6 +13,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+var version = "dev"
+
 func main() {
 	server := envOr("CHIT_SERVER", "http://127.0.0.1:8090")
 	token := envOr("CHIT_TOKEN", "")

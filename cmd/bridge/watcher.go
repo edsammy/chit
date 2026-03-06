@@ -103,7 +103,6 @@ func listenSSE(ctx context.Context, base, token string, onMessage func(sseRecord
 			}
 			if json.Unmarshal([]byte(data), &connect) == nil && connect.ClientID != "" {
 				clientID = connect.ClientID
-				log.Printf("SSE connected, subscribing (clientID=%s)", clientID)
 				if err := subscribeSSE(base, token, clientID); err != nil {
 					return fmt.Errorf("subscribing: %w", err)
 				}

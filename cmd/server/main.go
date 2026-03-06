@@ -244,4 +244,5 @@ func strPtr(s string) *string { return &s }
 
 func registerHooks(se *core.ServeEvent, app *pocketbase.PocketBase) {
 	registerAuth(se, app)
+	registerDownload(se)
 }

@@ -57,7 +57,6 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	log.Printf("connecting to SSE at %s", server)
 	watchMessages(ctx, server, token, bot.ID, claudeRoom.ID, handler)
 }
 
