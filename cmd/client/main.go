@@ -163,8 +163,9 @@ type model struct {
 	editID        string
 	threadViewID  string
 
-	readMarkers map[string]string
-	latestMsgs  map[string]string
+	readMarkers      map[string]string
+	localReadMarkers map[string]string // set locally, may not be on server yet
+	latestMsgs       map[string]string
 
 	dotCount  int
 	dotActive bool
@@ -180,7 +181,8 @@ func initialModel(api *API, me *Member) model {
 		api:         api,
 		me:          me,
 		msgIdx:      -1,
-		readMarkers: make(map[string]string),
+		readMarkers:      make(map[string]string),
+		localReadMarkers: make(map[string]string),
 		latestMsgs:  make(map[string]string),
 		dotCount:    1,
 		viewport:    viewport.New(0, 0),
@@ -287,9 +289,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			currentRoomID = m.rooms[m.roomIdx].ID
 		}
 		for roomID, serverRead := range msg.markers {
-			if roomID != currentRoomID {
-				m.readMarkers[roomID] = serverRead
+			if roomID == currentRoomID {
+				continue
 			}
+			// don't overwrite a local marker that the server hasn't caught up to
+			if local, ok := m.localReadMarkers[roomID]; ok && local != serverRead {
+				continue
+			}
+			m.readMarkers[roomID] = serverRead
+			delete(m.localReadMarkers, roomID) // server caught up
 		}
 		for roomID, serverLatest := range msg.latest {
 			m.latestMsgs[roomID] = serverLatest
@@ -306,6 +314,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			lastID := m.messages[len(m.messages)-1].ID
 			if m.readMarkers[roomID] != lastID {
 				m.readMarkers[roomID] = lastID
+				m.localReadMarkers[roomID] = lastID
 				m.latestMsgs[roomID] = lastID
 				go m.api.SetReadMarker(m.me.ID, roomID, lastID)
 			}
