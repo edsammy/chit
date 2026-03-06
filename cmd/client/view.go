@@ -113,7 +113,7 @@ func (m model) viewRooms() string {
 
 		lastRead := m.readMarkers[room.ID]
 		latest := m.latestMsgs[room.ID]
-		if latest != "" && latest != lastRead {
+		if lastRead != "" && latest != "" && latest != lastRead {
 			marker = unreadStyle.Render("* ")
 		}
 

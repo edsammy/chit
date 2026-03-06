@@ -51,11 +51,11 @@ func main() {
 		log.Fatalf("reading system prompt %q: %v", promptFile, err)
 	}
 
-	handler := NewClaudeHandler(api, bot, claudeRoom.ID, errRoomID, string(systemPrompt), projectDir, maxTurns)
-	log.Printf("claude working directory: %s", projectDir)
-
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	handler := NewClaudeHandler(ctx, api, bot, claudeRoom.ID, errRoomID, string(systemPrompt), projectDir, maxTurns)
+	log.Printf("claude working directory: %s", projectDir)
 
 	watchMessages(ctx, server, token, bot.ID, claudeRoom.ID, handler)
 }

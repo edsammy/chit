@@ -13,6 +13,7 @@ import (
 )
 
 type ClaudeHandler struct {
+	ctx          context.Context
 	api          *API
 	bot          *Member
 	claudeRoomID string
@@ -28,8 +29,9 @@ type ClaudeHandler struct {
 	}
 }
 
-func NewClaudeHandler(api *API, bot *Member, claudeRoomID, errRoomID, systemPrompt, projectDir string, maxTurns int) *ClaudeHandler {
+func NewClaudeHandler(ctx context.Context, api *API, bot *Member, claudeRoomID, errRoomID, systemPrompt, projectDir string, maxTurns int) *ClaudeHandler {
 	h := &ClaudeHandler{
+		ctx:          ctx,
 		api:          api,
 		bot:          bot,
 		claudeRoomID: claudeRoomID,
@@ -61,13 +63,23 @@ func (h *ClaudeHandler) Handle(msg Message) {
 	}
 
 	var lastUpdate time.Time
-	onStatus := func(status string) {
+	onUpdate := func(text, status string) {
 		if time.Since(lastUpdate) < 500*time.Millisecond {
 			return
 		}
 		lastUpdate = time.Now()
-		if err := h.api.UpdateMessage(statusMsg.ID, "_"+status+"_"); err != nil {
-			log.Printf("patching status: %v", err)
+		body := text
+		if status != "" {
+			if body != "" {
+				body += "\n\n"
+			}
+			body += "_" + status + "_"
+		}
+		if body == "" {
+			body = "..."
+		}
+		if err := h.api.UpdateMessage(statusMsg.ID, body); err != nil {
+			log.Printf("patching stream update: %v", err)
 		}
 	}
 
@@ -80,10 +92,10 @@ func (h *ClaudeHandler) Handle(msg Message) {
 	sessionID = h.sessions.m[threadKey]
 	h.sessions.Unlock()
 
-	result, newSessionID, model, err := h.invoke(prompt, sessionID, onStatus)
+	result, newSessionID, model, err := h.invoke(prompt, sessionID, onUpdate)
 	if err != nil && sessionID != "" {
 		log.Printf("resume failed, retrying fresh: %v", err)
-		result, newSessionID, model, err = h.invoke(prompt, "", onStatus)
+		result, newSessionID, model, err = h.invoke(prompt, "", onUpdate)
 	}
 	if err != nil {
 		log.Printf("claude invocation failed for %s: %v", msg.ID, err)
@@ -150,8 +162,8 @@ type contentBlock struct {
 	Input json.RawMessage `json:"input"`
 }
 
-func (h *ClaudeHandler) invoke(prompt, sessionID string, onStatus func(string)) (string, string, string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+func (h *ClaudeHandler) invoke(prompt, sessionID string, onUpdate func(text, status string)) (string, string, string, error) {
+	ctx, cancel := context.WithTimeout(h.ctx, 15*time.Minute)
 	defer cancel()
 
 	args := []string{
@@ -180,6 +192,7 @@ func (h *ClaudeHandler) invoke(prompt, sessionID string, onStatus func(string)) 
 	var resultText string
 	var resultSessionID string
 	var resultModel string
+	var streamedText string
 
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
@@ -201,15 +214,18 @@ func (h *ClaudeHandler) invoke(prompt, sessionID string, onStatus func(string)) 
 				resultModel = event.Model
 			}
 		case "assistant":
-			if event.Subtype == "tool_use" && event.Message != nil {
+			if event.Message != nil {
 				var msg streamMessage
 				if err := json.Unmarshal(event.Message, &msg); err != nil {
 					continue
 				}
 				for _, block := range msg.Content {
-					if block.Type == "tool_use" {
+					if block.Type == "text" && block.Text != "" {
+						streamedText = strings.TrimSpace(block.Text)
+						onUpdate(streamedText, "")
+					} else if block.Type == "tool_use" {
 						if status := formatToolActivity(block.Name, block.Input); status != "" {
-							onStatus(status)
+							onUpdate(streamedText, status)
 						}
 					}
 				}
@@ -264,6 +280,12 @@ func formatToolActivity(name string, input json.RawMessage) string {
 		}
 		return "writing file..."
 	case "Bash":
+		if cmd, ok := params["command"].(string); ok {
+			if len(cmd) > 60 {
+				cmd = cmd[:60] + "..."
+			}
+			return fmt.Sprintf("running `%s`", cmd)
+		}
 		return "running command..."
 	default:
 		return ""
