@@ -214,13 +214,20 @@ func (m *model) refreshViewport() {
 	content := m.renderMessages()
 	m.viewport.SetContent(content)
 	if m.msgIdx >= 0 && m.msgIdx < len(m.msgLines) {
-		line := m.msgLines[m.msgIdx]
+		lineStart := m.msgLines[m.msgIdx]
+		// find end of this message (start of next, or end of content)
+		lineEnd := lineStart
+		if m.msgIdx+1 < len(m.msgLines) {
+			lineEnd = m.msgLines[m.msgIdx+1] - 1
+		} else {
+			lineEnd = strings.Count(content, "\n")
+		}
 		vpHeight := m.viewport.Height
 		yOffset := m.viewport.YOffset
-		if line < yOffset {
-			m.viewport.SetYOffset(line)
-		} else if line >= yOffset+vpHeight {
-			m.viewport.SetYOffset(line - vpHeight + 1)
+		if lineStart < yOffset {
+			m.viewport.SetYOffset(lineStart)
+		} else if lineEnd >= yOffset+vpHeight {
+			m.viewport.SetYOffset(lineEnd - vpHeight + 1)
 		}
 	} else if atBottom {
 		m.viewport.GotoBottom()
