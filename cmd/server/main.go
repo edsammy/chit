@@ -258,4 +258,12 @@ func strPtr(s string) *string { return &s }
 func registerHooks(se *core.ServeEvent, app *pocketbase.PocketBase) {
 	registerAuth(se, app)
 	registerDownload(se)
+
+	// Auto-expand author on messages so SSE events include handle/name/is_bot
+	app.OnRecordEnrich("messages").BindFunc(func(e *core.RecordEnrichEvent) error {
+		if e.Record.GetString("author") != "" {
+			app.ExpandRecord(e.Record, []string{"author"}, nil)
+		}
+		return e.Next()
+	})
 }
