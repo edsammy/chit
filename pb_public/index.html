@@ -668,9 +668,10 @@ async function enterApp() {
   renderRooms();
   connectSSE();
 
-  if (window.innerWidth >= 768 && rooms.length > 0) {
-    selectRoom(rooms[0]);
-  }
+  // Default to #general
+  const general = rooms.find(r => r.name === 'general');
+  if (general) selectRoom(general);
+  else if (rooms.length > 0) selectRoom(rooms[0]);
 }
 
 // ── Rooms ──
@@ -705,6 +706,7 @@ async function selectRoom(room) {
     messages.forEach(m => messagesMap[m.id] = m);
     renderMessages();
     scrollBottom();
+    input.focus();
   } catch(e) {
     messagesEl.innerHTML = '<div class="empty-state">failed to load</div>';
   }
