@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<title>chit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0a;
+  --bg-surface: #111111;
+  --bg-hover: #1a1a1a;
+  --bg-active: #222222;
+  --border: #222222;
+  --border-light: #2a2a2a;
+  --text: #e8e8e8;
+  --text-dim: #777777;
+  --text-muted: #555555;
+  --accent: #4ade80;
+  --accent-dim: #22633a;
+  --blue: #60a5fa;
+  --orange: #fb923c;
+  --red: #f87171;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+/* ── Login screen ── */
+#login-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+  gap: 1.5rem;
+}
+
+#login-screen h1 {
+  font-family: var(--mono);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.03em;
+}
+
+#login-screen p {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  text-align: center;
+  max-width: 300px;
+}
+
+#login-screen input {
+  width: 100%;
+  max-width: 380px;
+  padding: 0.75rem 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#login-screen input:focus { border-color: var(--accent); }
+#login-screen input::placeholder { color: var(--text-muted); }
+
+#login-screen .fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 380px;
+}
+
+#login-screen button {
+  width: 100%;
+  max-width: 380px;
+  padding: 0.75rem;
+  background: var(--accent);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+#login-screen button:active { opacity: 0.8; }
+
+#login-error {
+  color: var(--red);
+  font-size: 0.8rem;
+  font-family: var(--mono);
+  min-height: 1.2rem;
+}
+
+/* ── App shell ── */
+#app {
+  display: none;
+  height: 100%;
+  flex-direction: column;
+}
+
+#app.active { display: flex; }
+
+/* ── Top bar ── */
+#topbar {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  padding-top: calc(0.6rem + var(--safe-top));
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  gap: 0.75rem;
+  flex-shrink: 0;
+  min-height: 52px;
+  z-index: 10;
+}
+
+#topbar .back-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  line-height: 1;
+}
+
+#topbar .room-name {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--accent);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#topbar .room-topic {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  display: none;
+}
+
+#topbar .user-handle {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+#topbar .logout-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+}
+
+#topbar .logout-btn:hover { color: var(--red); }
+
+/* ── Main layout ── */
+#main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 100%;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#sidebar .section-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1rem 1rem 0.4rem;
+}
+
+.room-item {
+  display: flex;
+  align-items: center;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  gap: 0.5rem;
+  border-left: 3px solid transparent;
+}
+
+.room-item:active { background: var(--bg-hover); }
+
+.room-item.active {
+  background: var(--bg-hover);
+  border-left-color: var(--accent);
+}
+
+.room-item .room-hash {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.room-item .room-label {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.room-item .unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-left: auto;
+  flex-shrink: 0;
+  display: none;
+}
+
+.room-item.has-unread .unread-dot { display: block; }
+.room-item.has-unread .room-label { color: var(--text); }
+
+/* ── Chat area ── */
+#chat-area {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+/* ── Messages ── */
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#messages .spacer { flex: 1; }
+
+.msg {
+  padding: 0.35rem 1rem;
+  animation: fadeIn 0.15s ease;
+}
+
+.msg.compact { padding-top: 0.1rem; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.msg-author {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.msg-author.bot { color: var(--blue); }
+.msg-author:not(.bot) { color: var(--orange); }
+
+.msg-time {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.msg-body {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.msg-body code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  background: var(--bg-hover);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.msg-body pre {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin: 0.4rem 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.msg-body pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.msg-parent-ref {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  border-left: 2px solid var(--border-light);
+  padding-left: 0.5rem;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msg-model {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  opacity: 0.6;
+}
+
+.msg-thread-btn {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.15rem 0;
+  margin-top: 0.1rem;
+}
+
+.msg-thread-btn:active { opacity: 0.7; }
+
+/* ── Compose ── */
+#compose {
+  display: flex;
+  align-items: flex-end;
+  padding: 0.5rem 0.75rem;
+  padding-bottom: calc(0.5rem + var(--safe-bottom));
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+#compose-context {
+  display: none;
+  padding: 0.3rem 0.75rem;
+  padding-top: 0.5rem;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+#compose-context .cancel-ctx {
+  color: var(--red);
+  cursor: pointer;
+  margin-left: 0.5rem;
+}
+
+#compose textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 120px;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#compose textarea:focus { border-color: var(--accent-dim); }
+#compose textarea::placeholder { color: var(--text-muted); }
+
+#compose button {
+  width: 40px;
+  height: 40px;
+  background: var(--accent);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+
+#compose button:active { opacity: 0.7; }
+#compose button:disabled { opacity: 0.3; cursor: default; }
+
+/* ── Thread view ── */
+#thread-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  flex-direction: column;
+}
+
+#thread-overlay.active { display: flex; }
+
+#thread-header {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  padding-top: calc(0.6rem + var(--safe-top));
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  gap: 0.75rem;
+}
+
+#thread-header button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+#thread-header span {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+#thread-messages {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.5rem 0;
+}
+
+.loading-state, .empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+/* ── Desktop ── */
+@media (min-width: 768px) {
+  #sidebar { width: 220px; display: flex !important; }
+  #chat-area { display: flex !important; }
+  #topbar .back-btn { display: none !important; }
+  #topbar .room-topic { display: block; }
+}
+
+/* ── Mobile ── */
+@media (max-width: 767px) {
+  #sidebar { display: flex; }
+  #chat-area { display: none; }
+  #main.in-room #sidebar { display: none; }
+  #main.in-room #chat-area { display: flex; }
+  #topbar .back-btn { display: block; }
+}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <h1>chit</h1>
+  <p>Paste your server URL and token to connect.</p>
+  <div class="fields">
+    <input type="url" id="login-server" placeholder="https://chit.nance.app" autocapitalize="off" autocorrect="off">
+    <input type="text" id="login-token" placeholder="paste your token" autocapitalize="off" autocorrect="off" spellcheck="false">
+  </div>
+  <button id="login-btn">connect</button>
+  <div id="login-error"></div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div id="topbar">
+    <button class="back-btn" id="back-btn">&larr;</button>
+    <span class="room-name" id="room-name">chit</span>
+    <span class="room-topic" id="room-topic"></span>
+    <span class="user-handle" id="user-handle"></span>
+    <button class="logout-btn" id="logout-btn">logout</button>
+  </div>
+
+  <div id="main">
+    <div id="sidebar">
+      <div class="section-label">rooms</div>
+      <div id="room-list"></div>
+    </div>
+
+    <div id="chat-area">
+      <div id="messages">
+        <div class="spacer"></div>
+      </div>
+      <div id="compose-context"></div>
+      <div id="compose">
+        <textarea id="input" rows="1" placeholder="message&hellip;"></textarea>
+        <button id="send-btn" disabled>&uarr;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Thread overlay -->
+<div id="thread-overlay">
+  <div id="thread-header">
+    <button id="thread-close">&larr;</button>
+    <span>thread</span>
+  </div>
+  <div id="thread-messages"></div>
+  <div id="thread-compose" style="display:flex;align-items:flex-end;padding:0.5rem 0.75rem;padding-bottom:calc(0.5rem + var(--safe-bottom));background:var(--bg-surface);border-top:1px solid var(--border);gap:0.5rem;">
+    <textarea id="thread-input" rows="1" placeholder="reply&hellip;" style="flex:1;min-height:40px;max-height:120px;padding:0.6rem 0.75rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:0.9rem;line-height:1.4;resize:none;outline:none;"></textarea>
+    <button id="thread-send" disabled style="width:40px;height:40px;background:var(--accent);color:#0a0a0a;border:none;border-radius:8px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&uarr;</button>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let server = '';
+let token = '';
+let me = null;
+let rooms = [];
+let currentRoom = null;
+let messages = [];
+let messagesMap = {};
+let replyTo = null;
+let threadParent = null;
+let sseRetryMs = 1000;
+let sseController = null;
+
+// ── DOM refs ──
+const $ = (s) => document.querySelector(s);
+const loginScreen = $('#login-screen');
+const app = $('#app');
+const roomList = $('#room-list');
+const messagesEl = $('#messages');
+const input = $('#input');
+const sendBtn = $('#send-btn');
+const roomNameEl = $('#room-name');
+const roomTopicEl = $('#room-topic');
+const userHandleEl = $('#user-handle');
+const mainEl = $('#main');
+const composeCtx = $('#compose-context');
+
+// ── API helpers ──
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(server + path, opts);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${method} ${path}: ${res.status} ${text}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ── Auth ──
+$('#login-btn').addEventListener('click', doLogin);
+$('#login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+async function doLogin() {
+  const s = $('#login-server').value.trim().replace(/\/+$/, '');
+  const t = $('#login-token').value.trim();
+  if (!s || !t) {
+    $('#login-error').textContent = 'both fields required';
+    return;
+  }
+  server = s;
+  token = t;
+  try {
+    me = await api('GET', '/api/auth/me');
+    try {
+      localStorage.setItem('chit_server', server);
+      localStorage.setItem('chit_token', token);
+    } catch(e) {}
+    enterApp();
+  } catch (e) {
+    $('#login-error').textContent = 'auth failed \u2014 check server & token';
+  }
+}
+
+// Auto-login from storage
+try {
+  const s = localStorage.getItem('chit_server');
+  const t = localStorage.getItem('chit_token');
+  if (s && t) {
+    server = s; token = t;
+    $('#login-server').value = s;
+    $('#login-token').value = t;
+    api('GET', '/api/auth/me').then(m => { me = m; enterApp(); }).catch(() => {});
+  }
+} catch(e) {}
+
+$('#logout-btn').addEventListener('click', () => {
+  try { localStorage.removeItem('chit_server'); localStorage.removeItem('chit_token'); } catch(e) {}
+  location.reload();
+});
+
+// ── Enter app ──
+async function enterApp() {
+  loginScreen.style.display = 'none';
+  app.classList.add('active');
+  userHandleEl.textContent = '@' + me.handle;
+
+  rooms = await api('GET', '/api/collections/rooms/records?sort=created').then(r =>
+    r.items.filter(r => r.name !== 'errors')
+  );
+  renderRooms();
+  connectSSE();
+
+  if (window.innerWidth >= 768 && rooms.length > 0) {
+    selectRoom(rooms[0]);
+  }
+}
+
+// ── Rooms ──
+function renderRooms() {
+  roomList.innerHTML = '';
+  rooms.forEach(room => {
+    const el = document.createElement('div');
+    el.className = 'room-item' + (currentRoom?.id === room.id ? ' active' : '');
+    el.innerHTML = `
+      <span class="room-hash">#</span>
+      <span class="room-label">${esc(room.name)}</span>
+      <span class="unread-dot"></span>
+    `;
+    el.addEventListener('click', () => selectRoom(room));
+    roomList.appendChild(el);
+  });
+}
+
+async function selectRoom(room) {
+  currentRoom = room;
+  roomNameEl.textContent = '#' + room.name;
+  roomTopicEl.textContent = room.topic || '';
+  mainEl.classList.add('in-room');
+  renderRooms();
+  clearReply();
+
+  messagesEl.innerHTML = '<div class="spacer"></div>';
+  try {
+    const res = await api('GET', `/api/collections/messages/records?filter=room='${room.id}'&sort=created&expand=author&perPage=200`);
+    messages = res.items;
+    messagesMap = {};
+    messages.forEach(m => messagesMap[m.id] = m);
+    renderMessages();
+    scrollBottom();
+  } catch(e) {
+    messagesEl.innerHTML = '<div class="empty-state">failed to load</div>';
+  }
+}
+
+// ── Messages ──
+function renderMessages() {
+  messagesEl.innerHTML = '<div class="spacer"></div>';
+  let lastAuthor = '';
+  let lastTime = '';
+
+  messages.forEach((msg) => {
+    if (msg.parent) return;
+
+    const author = msg.expand?.author;
+    const handle = author?.handle || '??';
+    const isBot = author?.is_bot || false;
+    const time = fmtTime(msg.created);
+    const compact = (handle === lastAuthor && time === lastTime);
+
+    const el = document.createElement('div');
+    el.className = 'msg' + (compact ? ' compact' : '');
+    el.dataset.id = msg.id;
+
+    let html = '';
+
+    if (!compact) {
+      html += `<div class="msg-header">
+        <span class="msg-author ${isBot ? 'bot' : ''}">${esc(handle)}</span>
+        <span class="msg-time">${time}</span>
+      </div>`;
+    }
+
+    html += `<div class="msg-body">${renderBody(msg.body)}</div>`;
+
+    if (msg.model) {
+      html += `<div class="msg-model">${esc(msg.model)}</div>`;
+    }
+
+    const replies = messages.filter(m => m.parent === msg.id);
+    if (replies.length > 0) {
+      html += `<button class="msg-thread-btn" data-thread="${msg.id}">${replies.length} repl${replies.length === 1 ? 'y' : 'ies'} \u25b8</button>`;
+    }
+
+    el.innerHTML = html;
+
+    // Long press for reply (mobile)
+    let pressTimer;
+    el.addEventListener('touchstart', () => {
+      pressTimer = setTimeout(() => setReply(msg), 500);
+    }, { passive: true });
+    el.addEventListener('touchend', () => clearTimeout(pressTimer));
+    el.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
+    const threadBtn = el.querySelector('.msg-thread-btn');
+    if (threadBtn) {
+      threadBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openThread(msg.id);
+      });
+    }
+
+    messagesEl.appendChild(el);
+    lastAuthor = handle;
+    lastTime = time;
+  });
+}
+
+function renderBody(body) {
+  if (!body) return '';
+  let s = esc(body);
+
+  // code blocks
+  s = s.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre><code>${code}</code></pre>`
+  );
+  // inline code
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // bold
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // italic
+  s = s.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+  // links
+  s = s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:var(--blue);word-break:break-all;">$1</a>');
+  // newlines
+  s = s.replace(/\n/g, '<br>');
+
+  return s;
+}
+
+function fmtTime(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const h = d.getHours();
+  const m = d.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'pm' : 'am';
+  const h12 = h % 12 || 12;
+  const time = `${h12}:${m}${ampm}`;
+
+  if (d.toDateString() !== now.toDateString()) {
+    const mon = d.toLocaleDateString('en', { month: 'short' });
+    const day = d.getDate();
+    return `${mon} ${day} ${time}`;
+  }
+  return time;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function scrollBottom() {
+  requestAnimationFrame(() => {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  });
+}
+
+// ── Reply ──
+function setReply(msg) {
+  replyTo = msg;
+  const author = msg.expand?.author?.handle || '??';
+  composeCtx.style.display = 'block';
+  composeCtx.innerHTML = `\u21a9 replying to <strong>${esc(author)}</strong> <span class="cancel-ctx">\u2715</span>`;
+  composeCtx.querySelector('.cancel-ctx').addEventListener('click', clearReply);
+  input.focus();
+}
+
+function clearReply() {
+  replyTo = null;
+  composeCtx.style.display = 'none';
+}
+
+// ── Send ──
+input.addEventListener('input', () => {
+  sendBtn.disabled = !input.value.trim();
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', sendMessage);
+
+async function sendMessage() {
+  const body = input.value.trim();
+  if (!body || !currentRoom) return;
+
+  const payload = { room: currentRoom.id, author: me.id, body };
+  if (replyTo) payload.parent = replyTo.id;
+
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.disabled = true;
+  clearReply();
+
+  try {
+    await api('POST', '/api/collections/messages/records', payload);
+  } catch (e) {
+    input.value = body;
+    sendBtn.disabled = false;
+  }
+}
+
+// ── Thread ──
+const threadOverlay = $('#thread-overlay');
+const threadMessages = $('#thread-messages');
+const threadInput = $('#thread-input');
+const threadSend = $('#thread-send');
+
+function openThread(parentId) {
+  threadParent = parentId;
+  threadOverlay.classList.add('active');
+
+  const parent = messagesMap[parentId];
+  const replies = messages.filter(m => m.parent === parentId);
+  const all = parent ? [parent, ...replies] : replies;
+
+  threadMessages.innerHTML = '';
+  all.forEach(msg => {
+    const author = msg.expand?.author;
+    const handle = author?.handle || '??';
+    const isBot = author?.is_bot || false;
+
+    const el = document.createElement('div');
+    el.className = 'msg';
+    el.innerHTML = `
+      <div class="msg-header">
+        <span class="msg-author ${isBot ? 'bot' : ''}">${esc(handle)}</span>
+        <span class="msg-time">${fmtTime(msg.created)}</span>
+      </div>
+      <div class="msg-body">${renderBody(msg.body)}</div>
+      ${msg.model ? `<div class="msg-model">${esc(msg.model)}</div>` : ''}
+    `;
+    threadMessages.appendChild(el);
+  });
+
+  threadMessages.scrollTop = threadMessages.scrollHeight;
+  threadInput.focus();
+}
+
+$('#thread-close').addEventListener('click', () => {
+  threadOverlay.classList.remove('active');
+  threadParent = null;
+});
+
+threadInput.addEventListener('input', () => {
+  threadSend.disabled = !threadInput.value.trim();
+  threadInput.style.height = 'auto';
+  threadInput.style.height = Math.min(threadInput.scrollHeight, 120) + 'px';
+});
+
+threadInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendThreadReply();
+  }
+});
+
+threadSend.addEventListener('click', sendThreadReply);
+
+async function sendThreadReply() {
+  const body = threadInput.value.trim();
+  if (!body || !threadParent || !currentRoom) return;
+
+  threadInput.value = '';
+  threadInput.style.height = 'auto';
+  threadSend.disabled = true;
+
+  try {
+    await api('POST', '/api/collections/messages/records', {
+      room: currentRoom.id,
+      author: me.id,
+      body,
+      parent: threadParent,
+    });
+  } catch(e) {
+    threadInput.value = body;
+    threadSend.disabled = false;
+  }
+}
+
+// ── Back button ──
+$('#back-btn').addEventListener('click', () => {
+  mainEl.classList.remove('in-room');
+  currentRoom = null;
+  roomNameEl.textContent = 'chit';
+  renderRooms();
+});
+
+// ── SSE realtime ──
+function connectSSE() {
+  if (sseController) sseController.abort();
+  sseController = new AbortController();
+
+  const doConnect = async () => {
+    try {
+      const res = await fetch(server + '/api/realtime', {
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+        signal: sseController.signal,
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let clientId = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+
+        const lines = buf.split('\n');
+        buf = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          const data = line.slice(5).trim();
+
+          if (!clientId) {
+            try {
+              const obj = JSON.parse(data);
+              if (obj.clientId) {
+                clientId = obj.clientId;
+                sseRetryMs = 1000;
+                fetch(server + '/api/realtime', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+                  },
+                  body: JSON.stringify({ clientId, subscriptions: ['messages'] }),
+                });
+                continue;
+              }
+            } catch(e) {}
+          }
+
+          // Parse SSE event and apply locally
+          if (clientId) {
+            try {
+              const event = JSON.parse(data);
+              if (event.action && event.record?.id) {
+                applySSEEvent(event.action, event.record);
+                continue;
+              }
+            } catch(e) {}
+            // Fallback: full refresh
+            if (currentRoom) debouncedRefresh();
+          }
+        }
+      }
+    } catch(e) {
+      if (e.name === 'AbortError') return;
+    }
+
+    setTimeout(doConnect, sseRetryMs);
+    sseRetryMs = Math.min(sseRetryMs * 2, 30000);
+  };
+
+  doConnect();
+}
+
+// Apply SSE events locally instead of re-fetching
+function applySSEEvent(action, record) {
+  if (!currentRoom) return;
+  if (record.room !== currentRoom.id) return;
+
+  const wasAtBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
+
+  if (action === 'create') {
+    if (!messagesMap[record.id]) {
+      messages.push(record);
+      messagesMap[record.id] = record;
+    }
+  } else if (action === 'update') {
+    const idx = messages.findIndex(m => m.id === record.id);
+    if (idx !== -1) {
+      messages[idx] = record;
+      messagesMap[record.id] = record;
+    }
+  } else if (action === 'delete') {
+    messages = messages.filter(m => m.id !== record.id);
+    delete messagesMap[record.id];
+  }
+
+  renderMessages();
+  if (wasAtBottom) scrollBottom();
+
+  if (threadParent && threadOverlay.classList.contains('active')) {
+    if (record.parent === threadParent || record.id === threadParent) {
+      openThread(threadParent);
+    }
+  }
+}
+
+let refreshTimer;
+function debouncedRefresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    if (!currentRoom) return;
+    try {
+      const res = await api('GET', `/api/collections/messages/records?filter=room='${currentRoom.id}'&sort=created&expand=author&perPage=200`);
+      const wasAtBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
+      messages = res.items;
+      messagesMap = {};
+      messages.forEach(m => messagesMap[m.id] = m);
+      renderMessages();
+      if (wasAtBottom) scrollBottom();
+
+      if (threadParent && threadOverlay.classList.contains('active')) {
+        openThread(threadParent);
+      }
+    } catch(e) {}
+    sseRetryMs = 1000;
+  }, 300);
+}
+
+// Catch up after sleep/wake or tab switch
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    if (currentRoom) debouncedRefresh();
+    connectSSE();
+  }
+});
+
+// Background poll as safety net (every 20s when tab is visible)
+setInterval(() => {
+  if (currentRoom && document.visibilityState === 'visible') {
+    api('GET', `/api/collections/messages/records?filter=room='${currentRoom.id}'&sort=created&expand=author&perPage=200`)
+      .then(res => {
+        const wasAtBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
+        messages = res.items;
+        messagesMap = {};
+        messages.forEach(m => messagesMap[m.id] = m);
+        renderMessages();
+        if (wasAtBottom) scrollBottom();
+      })
+      .catch(() => {});
+  }
+}, 20000);
+</script>
+</body>
+</html>
