@@ -527,9 +527,8 @@ html, body {
 <!-- Login -->
 <div id="login-screen">
   <h1>chit</h1>
-  <p>Paste your server URL and token to connect.</p>
+  <p>Paste your token to connect.</p>
   <div class="fields">
-    <input type="url" id="login-server" placeholder="https://chit.nance.app" autocapitalize="off" autocorrect="off">
     <input type="text" id="login-token" placeholder="paste your token" autocapitalize="off" autocorrect="off" spellcheck="false">
   </div>
   <button id="login-btn">connect</button>
@@ -580,7 +579,7 @@ html, body {
 
 <script>
 // ── State ──
-let server = '';
+let server = window.location.origin;
 let token = '';
 let me = null;
 let rooms = [];
@@ -628,40 +627,32 @@ $('#login-btn').addEventListener('click', doLogin);
 $('#login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 
 async function doLogin() {
-  const s = $('#login-server').value.trim().replace(/\/+$/, '');
   const t = $('#login-token').value.trim();
-  if (!s || !t) {
-    $('#login-error').textContent = 'both fields required';
+  if (!t) {
+    $('#login-error').textContent = 'token required';
     return;
   }
-  server = s;
   token = t;
   try {
     me = await api('GET', '/api/auth/me');
-    try {
-      localStorage.setItem('chit_server', server);
-      localStorage.setItem('chit_token', token);
-    } catch(e) {}
+    try { localStorage.setItem('chit_token', token); } catch(e) {}
     enterApp();
   } catch (e) {
-    $('#login-error').textContent = 'auth failed \u2014 check server & token';
+    $('#login-error').textContent = 'invalid token';
   }
 }
 
 // Auto-login from storage
 try {
-  const s = localStorage.getItem('chit_server');
   const t = localStorage.getItem('chit_token');
-  if (s && t) {
-    server = s; token = t;
-    $('#login-server').value = s;
-    $('#login-token').value = t;
+  if (t) {
+    token = t;
     api('GET', '/api/auth/me').then(m => { me = m; enterApp(); }).catch(() => {});
   }
 } catch(e) {}
 
 $('#logout-btn').addEventListener('click', () => {
-  try { localStorage.removeItem('chit_server'); localStorage.removeItem('chit_token'); } catch(e) {}
+  try { localStorage.removeItem('chit_token'); } catch(e) {}
   location.reload();
 });
 
