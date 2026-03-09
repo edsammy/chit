@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -258,6 +259,11 @@ func strPtr(s string) *string { return &s }
 func registerHooks(se *core.ServeEvent, app *pocketbase.PocketBase) {
 	registerAuth(se, app)
 	registerDownload(se)
+
+	// Serve web client
+	se.Router.GET("/", func(e *core.RequestEvent) error {
+		return e.FileFS(os.DirFS("pb_public"), "index.html")
+	})
 
 	// Auto-expand author on messages so SSE events include handle/name/is_bot
 	app.OnRecordEnrich("messages").BindFunc(func(e *core.RecordEnrichEvent) error {
