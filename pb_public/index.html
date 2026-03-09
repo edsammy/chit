@@ -525,7 +525,7 @@ html, body {
 <body>
 
 <!-- Login -->
-<div id="login-screen">
+<div id="login-screen" style="display:none">
   <h1>chit</h1>
   <p>Paste your token to connect.</p>
   <div class="fields">
@@ -642,14 +642,20 @@ async function doLogin() {
   }
 }
 
-// Auto-login from storage
+// Auto-login from storage, or show login screen
 try {
   const t = localStorage.getItem('chit_token');
   if (t) {
     token = t;
-    api('GET', '/api/auth/me').then(m => { me = m; enterApp(); }).catch(() => {});
+    api('GET', '/api/auth/me').then(m => { me = m; enterApp(); }).catch(() => {
+      loginScreen.style.display = '';
+    });
+  } else {
+    loginScreen.style.display = '';
   }
-} catch(e) {}
+} catch(e) {
+  loginScreen.style.display = '';
+}
 
 $('#logout-btn').addEventListener('click', () => {
   try { localStorage.removeItem('chit_token'); } catch(e) {}
