@@ -304,8 +304,7 @@ html, body {
   font-size: 0.85rem;
 }
 
-.msg-author.bot { color: var(--blue); }
-.msg-author:not(.bot) { color: var(--orange); }
+.msg-author.bot { color: #c678dd; }
 
 .msg-time {
   font-family: var(--mono);
@@ -741,7 +740,7 @@ function renderMessages() {
 
     if (!compact) {
       html += `<div class="msg-header">
-        <span class="msg-author ${isBot ? 'bot' : ''}">${esc(handle)}</span>
+        <span class="msg-author ${isBot ? 'bot' : ''}" style="${isBot ? '' : 'color:' + handleColor(handle)}">${esc(handle)}</span>
         <span class="msg-time">${time}</span>
       </div>`;
     }
@@ -826,6 +825,18 @@ function esc(s) {
   return d.innerHTML;
 }
 
+// Same algorithm as TUI: hash handle, pick from ANSI-equivalent hex colors
+const nameColorPalette = [
+  '#e06c75', '#98c379', '#e5c07b', '#61afef', '#56b6c2',
+  '#ff6e6e', '#50fa7b', '#f1fa8c', '#8be9fd', '#ff79c6',
+  '#50e0ff', '#fb923c',
+];
+function handleColor(handle) {
+  let h = 0;
+  for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) >>> 0;
+  return nameColorPalette[h % nameColorPalette.length];
+}
+
 function scrollBottom() {
   requestAnimationFrame(() => {
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -907,7 +918,7 @@ function openThread(parentId) {
     el.className = 'msg';
     el.innerHTML = `
       <div class="msg-header">
-        <span class="msg-author ${isBot ? 'bot' : ''}">${esc(handle)}</span>
+        <span class="msg-author ${isBot ? 'bot' : ''}" style="${isBot ? '' : 'color:' + handleColor(handle)}">${esc(handle)}</span>
         <span class="msg-time">${fmtTime(msg.created)}</span>
       </div>
       <div class="msg-body">${renderBody(msg.body)}</div>
