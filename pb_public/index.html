@@ -1071,6 +1071,13 @@ function applySSEEvent(action, record) {
     if (idx !== -1) {
       messages[idx] = record;
       messagesMap[record.id] = record;
+      // Patch in-place: just update the body HTML instead of full re-render
+      const el = messagesEl.querySelector(`[data-id="${record.id}"] .msg-body`);
+      if (el) {
+        el.innerHTML = renderBody(record.body);
+        if (wasAtBottom) scrollBottom();
+        return;
+      }
     }
   } else if (action === 'delete') {
     messages = messages.filter(m => m.id !== record.id);
