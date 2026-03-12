@@ -1,10 +1,26 @@
 package main
 
 import (
+	"os/exec"
+	"runtime"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+func copyToClipboard(s string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("pbcopy")
+	case "linux":
+		cmd = exec.Command("xclip", "-selection", "clipboard")
+	default:
+		return
+	}
+	cmd.Stdin = strings.NewReader(s)
+	_ = cmd.Run()
+}
 
 func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
@@ -104,6 +120,13 @@ func (m model) handleMsgSelection(msg tea.KeyMsg, key string) (tea.Model, tea.Cm
 			m.editID = dm.msg.ID
 			m.input = dm.msg.Body
 			m.cursor = len(m.input)
+			m.msgIdx = -1
+			m.refreshViewport()
+		}
+	case "y":
+		if m.msgIdx < len(m.display) {
+			body := m.display[m.msgIdx].msg.Body
+			copyToClipboard(body)
 			m.msgIdx = -1
 			m.refreshViewport()
 		}

@@ -709,6 +709,7 @@ async function selectRoom(room) {
     messages = res.items;
     messagesMap = {};
     messages.forEach(m => messagesMap[m.id] = m);
+    lastPollFingerprint = messages.map(m => m.id + m.updated).join(',');
     renderMessages();
     scrollBottom();
     input.focus();
@@ -1093,6 +1094,9 @@ function debouncedRefresh() {
     if (!currentRoom) return;
     try {
       const res = await api('GET', `/api/collections/messages/records?filter=room='${currentRoom.id}'&sort=created&expand=author&perPage=200`);
+      const fp = res.items.map(m => m.id + m.updated).join(',');
+      if (fp === lastPollFingerprint) return;
+      lastPollFingerprint = fp;
       const wasAtBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
       messages = res.items;
       messagesMap = {};
@@ -1117,10 +1121,32 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Background poll as safety net (every 20s when tab is visible)
+let lastPollFingerprint = '';
 setInterval(() => {
   if (currentRoom && document.visibilityState === 'visible') {
     api('GET', `/api/collections/messages/records?filter=room='${currentRoom.id}'&sort=created&expand=author&perPage=200`)
       .then(res => {
+        const fp = res.items.map(m => m.id + m.updated).join(',');
+        if (fp === lastPollFingerprint) return;
+        lastPollFingerprint = fp;
+        // If same messages just updated (e.g. Claude streaming), patch in-place
+        if (res.items.length === messages.length &&
+            res.items.every((m, i) => m.id === messages[i].id)) {
+          let allPatched = true;
+          res.items.forEach((m, i) => {
+            if (m.updated !== messages[i].updated) {
+              const el = messagesEl.querySelector(`[data-id="${m.id}"] .msg-body`);
+              if (el) {
+                el.innerHTML = renderBody(m.body);
+                messages[i] = m;
+                messagesMap[m.id] = m;
+              } else {
+                allPatched = false;
+              }
+            }
+          });
+          if (allPatched) { messages = res.items; return; }
+        }
         const wasAtBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
         messages = res.items;
         messagesMap = {};
