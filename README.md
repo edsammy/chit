@@ -79,6 +79,7 @@ Your laptop                          VPS
 | `t` | Open thread (in selection mode) |
 | `r` | Reply to selected message |
 | `e` | Edit selected message (own only) |
+| `y` | Copy selected message to clipboard |
 | `d` | Delete selected message (own only, confirms) |
 | `Esc` | Cancel (selection/edit/reply/thread), jump to bottom |
 | `Ctrl+C` | Clear input |

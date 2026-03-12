@@ -83,7 +83,7 @@ func (m model) viewInput() string {
 		if m.confirmDelete {
 			hint = editBarStyle.Render("delete message? y/n")
 		} else {
-			hint = hintStyle.Render("enter: thread  r: reply  e: edit  d: delete  esc: cancel")
+			hint = hintStyle.Render("enter: thread  r: reply  e: edit  y: yank  d: delete  esc: cancel")
 		}
 		return inputStyle.Width(inputW).Render(hint)
 	}
