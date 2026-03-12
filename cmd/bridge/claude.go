@@ -39,7 +39,7 @@ func NewClaudeHandler(ctx context.Context, api *API, bot *Member, claudeRoomID, 
 		systemPrompt: systemPrompt,
 		projectDir:   projectDir,
 		maxTurns:     maxTurns,
-		sem:          make(chan struct{}, 2),
+		sem:          make(chan struct{}, 1),
 	}
 	h.sessions.m = make(map[string]string)
 	return h
@@ -73,7 +73,7 @@ func (h *ClaudeHandler) Handle(msg Message) {
 			if body != "" {
 				body += "\n\n"
 			}
-			body += "_" + status + "_"
+			body += "*" + status + "*"
 		}
 		if body == "" {
 			body = "..."
