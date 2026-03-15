@@ -705,8 +705,8 @@ async function selectRoom(room) {
 
   messagesEl.innerHTML = '<div class="spacer"></div>';
   try {
-    const res = await api('GET', `/api/collections/messages/records?filter=room='${room.id}'&sort=created&expand=author&perPage=200`);
-    messages = res.items;
+    const res = await api('GET', `/api/collections/messages/records?filter=room='${room.id}'&sort=-created&expand=author&perPage=200`);
+    messages = res.items.reverse();
     messagesMap = {};
     messages.forEach(m => messagesMap[m.id] = m);
     lastPollFingerprint = messages.map(m => m.id + m.updated).join(',');
@@ -1100,7 +1100,8 @@ function debouncedRefresh() {
   refreshTimer = setTimeout(async () => {
     if (!currentRoom) return;
     try {
-      const res = await api('GET', `/api/collections/messages/records?filter=room='${currentRoom.id}'&sort=created&expand=author&perPage=200`);
+      const res = await api('GET', `/api/collections/messages/records?filter=room='${currentRoom.id}'&sort=-created&expand=author&perPage=200`);
+      res.items.reverse();
       const fp = res.items.map(m => m.id + m.updated).join(',');
       if (fp === lastPollFingerprint) return;
       lastPollFingerprint = fp;
@@ -1131,8 +1132,9 @@ document.addEventListener('visibilitychange', () => {
 let lastPollFingerprint = '';
 setInterval(() => {
   if (currentRoom && document.visibilityState === 'visible') {
-    api('GET', `/api/collections/messages/records?filter=room='${currentRoom.id}'&sort=created&expand=author&perPage=200`)
+    api('GET', `/api/collections/messages/records?filter=room='${currentRoom.id}'&sort=-created&expand=author&perPage=200`)
       .then(res => {
+        res.items.reverse();
         const fp = res.items.map(m => m.id + m.updated).join(',');
         if (fp === lastPollFingerprint) return;
         lastPollFingerprint = fp;
