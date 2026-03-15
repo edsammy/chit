@@ -54,6 +54,8 @@ type Message struct {
 type listResponse[T any] struct {
 	Items      []T `json:"items"`
 	TotalItems int `json:"totalItems"`
+	TotalPages int `json:"totalPages"`
+	Page       int `json:"page"`
 }
 
 func (a *API) GetMe() (*Member, error) {
@@ -90,17 +92,18 @@ func (a *API) ListRooms() ([]Room, error) {
 	return rooms, nil
 }
 
-func (a *API) ListMessages(roomID string) ([]Message, error) {
+func (a *API) ListMessagesPaginated(roomID string, page, perPage int) ([]Message, int, int, error) {
 	var resp listResponse[Message]
 	v := url.Values{}
 	v.Set("filter", fmt.Sprintf("room='%s'", roomID))
-	v.Set("sort", "created")
+	v.Set("sort", "-created")
 	v.Set("expand", "author")
-	v.Set("perPage", "200")
+	v.Set("perPage", fmt.Sprintf("%d", perPage))
+	v.Set("page", fmt.Sprintf("%d", page))
 	if err := a.get("/api/collections/messages/records?"+v.Encode(), &resp); err != nil {
-		return nil, err
+		return nil, 0, 0, err
 	}
-	return resp.Items, nil
+	return resp.Items, resp.TotalPages, resp.Page, nil
 }
 
 func (a *API) SendMessage(roomID, authorID, body, parent string) (*Message, error) {

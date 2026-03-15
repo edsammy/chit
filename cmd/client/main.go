@@ -118,8 +118,15 @@ func envOr(key, def string) string {
 
 
 type roomsLoadedMsg struct{ rooms []Room }
-type messagesLoadedMsg struct {
-	messages []Message
+type messagesPageLoadedMsg struct {
+	messages   []Message
+	totalPages int
+	page       int
+}
+type olderMessagesLoadedMsg struct {
+	messages   []Message
+	totalPages int
+	page       int
 }
 type messageSentMsg struct{}
 type readMarkersLoadedMsg struct {
@@ -168,9 +175,13 @@ type model struct {
 	readMarkers map[string]string
 	latestMsgs  map[string]string
 
-	snapToBottom bool
-	dotCount     int
-	dotActive    bool
+	snapToBottom   bool
+	dotCount       int
+	dotActive      bool
+	currentPage    int
+	totalPages     int
+	loadingHistory bool
+	allLoaded      bool
 }
 
 func (m *model) clearInput() {
@@ -188,7 +199,15 @@ func initialModel(api *API, me *Member) model {
 		dotCount:    1,
 		viewport:    viewport.New(0, 0),
 		ready:       true,
+		currentPage: 1,
 	}
+}
+
+func (m *model) resetPagination() {
+	m.currentPage = 1
+	m.totalPages = 0
+	m.loadingHistory = false
+	m.allLoaded = false
 }
 
 func (m model) Init() tea.Cmd {
@@ -255,6 +274,62 @@ func (m *model) hasPendingDots() bool {
 	return false
 }
 
+func (m *model) handleSSEMessage(msg sseMessageEvent) tea.Cmd {
+	roomID := ""
+	if len(m.rooms) > 0 {
+		roomID = m.rooms[m.roomIdx].ID
+	}
+	switch msg.Action {
+	case "create":
+		m.latestMsgs[msg.Record.Room] = msg.Record.ID
+		if msg.Record.Room == roomID {
+			dup := false
+			for _, existing := range m.messages {
+				if existing.ID == msg.Record.ID {
+					dup = true
+					break
+				}
+			}
+			if !dup {
+				m.messages = append(m.messages, msg.Record)
+				m.buildDisplay()
+				m.refreshViewport()
+				m.readMarkers[roomID] = msg.Record.ID
+				m.latestMsgs[roomID] = msg.Record.ID
+				go m.api.SetReadMarker(m.me.ID, roomID, msg.Record.ID)
+			}
+		}
+	case "update":
+		if msg.Record.Room == roomID {
+			for i, existing := range m.messages {
+				if existing.ID == msg.Record.ID {
+					m.messages[i] = msg.Record
+					break
+				}
+			}
+			m.buildDisplay()
+			m.refreshViewport()
+		}
+	case "delete":
+		if msg.Record.Room == roomID {
+			for i, existing := range m.messages {
+				if existing.ID == msg.Record.ID {
+					m.messages = append(m.messages[:i], m.messages[i+1:]...)
+					break
+				}
+			}
+			m.buildDisplay()
+			m.refreshViewport()
+		}
+	}
+	wasDotActive := m.dotActive
+	m.dotActive = m.hasPendingDots()
+	if m.dotActive && !wasDotActive {
+		return dotTick()
+	}
+	return nil
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
@@ -272,8 +347,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = nil
 		m.rooms = msg.rooms
 		if len(m.rooms) > 0 {
+			m.resetPagination()
+			m.snapToBottom = true
 			return m, tea.Batch(
-				loadMessages(m.api, m.rooms[m.roomIdx].ID),
+				loadNewestMessages(m.api, m.rooms[m.roomIdx].ID),
 				loadReadMarkers(m.api, m.me.ID),
 				loadLatestMsgs(m.api, m.rooms),
 			)
@@ -292,8 +369,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case messagesLoadedMsg:
+	case messagesPageLoadedMsg:
 		m.messages = msg.messages
+		m.totalPages = msg.totalPages
+		m.currentPage = 2
+		m.allLoaded = msg.totalPages <= 1
+		m.loadingHistory = false
 		m.buildDisplay()
 		wasDotActive := m.dotActive
 		m.dotActive = m.hasPendingDots()
@@ -313,6 +394,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, cmd
 
+	case olderMessagesLoadedMsg:
+		oldLines := m.viewport.TotalLineCount()
+		m.messages = append(msg.messages, m.messages...)
+		m.currentPage = msg.page + 1
+		m.allLoaded = msg.page >= msg.totalPages
+		m.loadingHistory = false
+		m.buildDisplay()
+		content := m.renderMessages()
+		m.viewport.SetContent(content)
+		delta := m.viewport.TotalLineCount() - oldLines
+		m.viewport.SetYOffset(m.viewport.YOffset + delta)
+		return m, nil
+
 	case dotTickMsg:
 		if !m.dotActive {
 			return m, nil
@@ -323,18 +417,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case messageSentMsg:
 		m.clearInput()
-		if len(m.rooms) > 0 {
-			roomID := m.rooms[m.roomIdx].ID
-			return m, loadMessages(m.api, roomID)
-		}
+		m.snapToBottom = true
 		return m, nil
+
+	case sseMessageEvent:
+		return m, m.handleSSEMessage(msg)
 
 	case sseEvent:
 		if len(m.rooms) > 0 {
-			return m, tea.Batch(
-				loadMessages(m.api, m.rooms[m.roomIdx].ID),
-				loadLatestMsgs(m.api, m.rooms),
-			)
+			return m, loadLatestMsgs(m.api, m.rooms)
 		}
 		return m, nil
 

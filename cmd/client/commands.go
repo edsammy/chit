@@ -12,13 +12,31 @@ func loadRooms(api *API) tea.Cmd {
 	}
 }
 
-func loadMessages(api *API, roomID string) tea.Cmd {
+func loadNewestMessages(api *API, roomID string) tea.Cmd {
 	return func() tea.Msg {
-		msgs, err := api.ListMessages(roomID)
+		msgs, totalPages, page, err := api.ListMessagesPaginated(roomID, 1, 200)
 		if err != nil {
 			return errMsg{err}
 		}
-		return messagesLoadedMsg{messages: msgs}
+		reverseMessages(msgs)
+		return messagesPageLoadedMsg{messages: msgs, totalPages: totalPages, page: page}
+	}
+}
+
+func loadOlderMessages(api *API, roomID string, page int) tea.Cmd {
+	return func() tea.Msg {
+		msgs, totalPages, pg, err := api.ListMessagesPaginated(roomID, page, 200)
+		if err != nil {
+			return errMsg{err}
+		}
+		reverseMessages(msgs)
+		return olderMessagesLoadedMsg{messages: msgs, totalPages: totalPages, page: pg}
+	}
+}
+
+func reverseMessages(msgs []Message) {
+	for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
+		msgs[i], msgs[j] = msgs[j], msgs[i]
 	}
 }
 

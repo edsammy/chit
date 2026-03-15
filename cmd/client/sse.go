@@ -13,6 +13,11 @@ import (
 
 type sseEvent struct{}
 
+type sseMessageEvent struct {
+	Action string  `json:"action"`
+	Record Message `json:"record"`
+}
+
 func subscribeSSE(base, token string, p *tea.Program) {
 	go func() {
 		backoff := time.Second
@@ -65,9 +70,21 @@ func listenSSE(base, token string, p *tea.Program) error {
 			}
 		}
 
-		if clientID != "" && time.Since(lastSend) >= 500*time.Millisecond {
-			lastSend = time.Now()
-			p.Send(sseEvent{})
+		if clientID != "" {
+			var msgEvent sseMessageEvent
+			if json.Unmarshal([]byte(data), &msgEvent) == nil && msgEvent.Action != "" {
+				if msgEvent.Action == "update" {
+					if time.Since(lastSend) >= 100*time.Millisecond {
+						lastSend = time.Now()
+						p.Send(msgEvent)
+					}
+				} else {
+					p.Send(msgEvent)
+				}
+			} else if time.Since(lastSend) >= 500*time.Millisecond {
+				lastSend = time.Now()
+				p.Send(sseEvent{})
+			}
 		}
 	}
 	return scanner.Err()

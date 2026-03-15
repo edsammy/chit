@@ -8,6 +8,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+func (m *model) maybeLoadOlder() tea.Cmd {
+	if m.viewport.AtTop() && !m.allLoaded && !m.loadingHistory && len(m.rooms) > 0 {
+		m.loadingHistory = true
+		return loadOlderMessages(m.api, m.rooms[m.roomIdx].ID, m.currentPage)
+	}
+	return nil
+}
+
 func copyToClipboard(s string) {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
@@ -38,7 +46,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.msgIdx = -1
 		m.confirmDelete = false
 		m.snapToBottom = true
-		return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
+		m.resetPagination()
+		return m, loadNewestMessages(m.api, m.rooms[m.roomIdx].ID)
 	}
 
 	if key == "shift+left" {
@@ -83,9 +92,12 @@ func (m model) handleMsgSelection(msg tea.KeyMsg, key string) (tea.Model, tea.Cm
 			m.msgIdx = -1
 			m.refreshViewport()
 		}
-	case "up", "down":
+	case "up", "down", "pgup", "pgdown":
 		var cmd tea.Cmd
 		m.viewport, cmd = m.viewport.Update(msg)
+		if older := m.maybeLoadOlder(); older != nil {
+			return m, tea.Batch(cmd, older)
+		}
 		return m, cmd
 	case "enter", "t":
 		if m.msgIdx < len(m.display) {
@@ -184,7 +196,8 @@ func (m model) handleRoomNav(key string) (tea.Model, tea.Cmd) {
 			m.msgIdx = -1
 			m.confirmDelete = false
 			m.snapToBottom = true
-			return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
+			m.resetPagination()
+			return m, loadNewestMessages(m.api, m.rooms[m.roomIdx].ID)
 		}
 	case "up":
 		if m.roomIdx > 0 {
@@ -192,7 +205,8 @@ func (m model) handleRoomNav(key string) (tea.Model, tea.Cmd) {
 			m.msgIdx = -1
 			m.confirmDelete = false
 			m.snapToBottom = true
-			return m, loadMessages(m.api, m.rooms[m.roomIdx].ID)
+			m.resetPagination()
+			return m, loadNewestMessages(m.api, m.rooms[m.roomIdx].ID)
 		}
 	case "enter", "shift+right":
 		m.focusRooms = false
@@ -267,9 +281,12 @@ func (m model) handleTextInput(msg tea.KeyMsg, key string) (tea.Model, tea.Cmd) 
 			m.refreshViewport()
 		}
 		return m, nil
-	case "up", "down":
+	case "up", "down", "pgup", "pgdown":
 		var cmd tea.Cmd
 		m.viewport, cmd = m.viewport.Update(msg)
+		if older := m.maybeLoadOlder(); older != nil {
+			return m, tea.Batch(cmd, older)
+		}
 		return m, cmd
 	default:
 		if msg.Type == tea.KeyRunes || key == " " {

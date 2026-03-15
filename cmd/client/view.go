@@ -32,6 +32,7 @@ var (
 	modelStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
 	selectBarStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 	thinkingStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("208")).Italic(true)
+	dimStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
 	msgBorderStyle = lipgloss.NewStyle().
 			Padding(0, 1).
@@ -164,6 +165,14 @@ func (m *model) renderMessages() string {
 	appendLine := func(s string) {
 		lines = append(lines, s)
 		lineCount += 1 + strings.Count(s, "\n")
+	}
+
+	if m.loadingHistory {
+		appendLine(dimStyle.Render("loading..."))
+		appendLine("")
+	} else if m.allLoaded {
+		appendLine(dimStyle.Render("── beginning of conversation ──"))
+		appendLine("")
 	}
 
 	if m.threadViewID != "" {
