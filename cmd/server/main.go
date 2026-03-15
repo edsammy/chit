@@ -193,6 +193,19 @@ func migrateFields(app *pocketbase.PocketBase) error {
 		}
 	}
 
+	// Increase body max length (default 5000 is too small for Claude responses)
+	if col, err := app.FindCollectionByNameOrId("messages"); err == nil {
+		if f := col.Fields.GetByName("body"); f != nil {
+			if tf, ok := f.(*core.TextField); ok && tf.Max < 20000 {
+				tf.Max = 20000
+				if err := app.Save(col); err != nil {
+					return fmt.Errorf("update body max: %w", err)
+				}
+				log.Printf("migrated: increased messages.body max to 20000")
+			}
+		}
+	}
+
 	// Add token field to members + backfill
 	col, err := app.FindCollectionByNameOrId("members")
 	if err != nil {
